@@ -83,7 +83,7 @@ async function showApp(user){
  const {data:p,error}=await client.from("profiles").select("role,email").eq("user_id",user.id).single();
  if(error){message("loginMessage","Prijava je uspjela, ali profil nije dostupan: "+error.message,true);return}
  profile=p;
- ["allKegsStat","fullKegsStat","emptyKegsStat","washedKegsStat","shippedKegsStat"].forEach(id=>$(id).classList.toggle("hidden",profile.role!=="admin"));
+ ["fullKegsStat","emptyKegsStat","washedKegsStat","shippedKegsStat"].forEach(id=>$(id).classList.toggle("hidden",profile.role!=="admin"));
  $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("logoutBtn").classList.remove("hidden");
  await loadKegs();
 }
@@ -150,7 +150,6 @@ async function showKegHistory(code){
  }catch(e){$("kegHistoryRows").innerHTML='<tr><td colspan="3">Povijest nije moguće učitati.</td></tr>';$("kegHistoryMessage").textContent="Greška pri učitavanju povijesti: "+e.message}
 }
 async function openAllKegs(){
- if(profile?.role!=="admin")return;
  ["homeView","kegWorkPanel","fillWorkPanel","fullKegsPanel","emptyKegsPanel","washedKegsPanel","shippedKegsPanel"].forEach(id=>$(id).classList.add("hidden"));
  $("allKegsPanel").classList.remove("hidden");renderAllKegs();
 }
