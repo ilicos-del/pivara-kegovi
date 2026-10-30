@@ -46,9 +46,9 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <section id="washCartPanel" class="panel hidden"><div class="row"><h2>Popis za pranje</h2><strong id="washCartCount">0 kegova</strong></div><div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th></th></tr></thead><tbody id="washCartRows"></tbody></table></div><div class="actions"><button id="confirmWashCartBtn">Potvrdi pranje</button><button id="clearWashCartBtn" class="secondary">Isprazni popis</button></div><div id="washCartMessage" role="status"></div></section>
 <div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th>Pivo</th><th>LOT</th><th>Punjenje</th></tr></thead><tbody id="kegRows"><tr><td colspan="5">Učitavanje…</td></tr></tbody></table></div>
 </div>
-<div id="fillWorkPanel" class="panel hidden"><div class="row"><h2>Punjenje kegova</h2><button class="secondary" id="backFillBtn">← Natrag</button></div><p class="sub">Unesi naziv piva, LOT i datum. Nakon očitanja QR koda punjenje se automatski sprema.</p>
+<div id="fillWorkPanel" class="panel hidden"><div class="row"><h2>Punjenje kegova</h2><button class="secondary" id="backFillBtn">← Natrag</button></div><p class="sub">Unesi naziv piva, LOT i datum, zatim dodaj kegove na popis. Punjenje se sprema tek nakon potvrde cijelog popisa.</p>
 <div class="grid"><div class="field"><label for="beer">Naziv piva</label><input id="beer" placeholder="Npr. Pilsner" list="beerList"><datalist id="beerList"><option>Pilsner</option><option>IPA</option><option>Pale Ale</option><option>Stout</option><option>Raspberry Sour</option></datalist></div><div class="field"><label for="lot">LOT broj</label><input id="lot" placeholder="Npr. LOT-2026-01"></div><div class="field"><label for="fillDate">Datum punjenja</label><input id="fillDate" type="date"></div><div class="field"><label for="kegCode">Oznaka bačve</label><input id="kegCode" placeholder="Keg-001"></div></div>
-<div class="actions"><button id="scanBtn" class="secondary">Skeniraj QR kod</button><button id="fillBtn">Spremi punjenje</button></div><div id="scanner" class="hidden"></div><div id="fillMessage" role="status"></div>
+<div class="actions"><button id="scanBtn" class="secondary">Skeniraj QR kod</button><button id="fillBtn">Dodaj keg na popis</button></div><div id="scanner" class="hidden"></div><div id="fillMessage" role="status"></div><section id="fillCartPanel" class="panel hidden"><div class="row"><h2>Popis za punjenje</h2><strong id="fillCartCount">0 kegova</strong></div><p class="sub" id="fillCartDetails"></p><div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th></th></tr></thead><tbody id="fillCartRows"></tbody></table></div><div class="actions"><button id="confirmFillCartBtn">Potvrdi punjenje</button><button id="clearFillCartBtn" class="secondary">Isprazni popis</button></div><div id="fillCartMessage" role="status"></div></section>
 </div>
 </section>
 </main>
@@ -266,22 +266,48 @@ $("workMenu").addEventListener("input",openWorkMode);
 
 function localToday(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 $("fillDate").value=localToday();
-let fillSaving=false;
-async function saveFillForCode(rawCode){
- if(fillSaving)return;
- const beer=$("beer").value.trim(),lot=$("lot").value.trim(),date=$("fillDate").value,code=String(rawCode||"").trim();
- if(!beer||!lot||!date){message("fillMessage","Prije skeniranja unesi naziv piva, LOT broj i datum punjenja.",true);return}
- if(!/^Keg-\d{3,}$/.test(code)){message("fillMessage","QR kod nije valjana oznaka bačve. Očekivani oblik je Keg-001.",true);return}
- fillSaving=true;$("fillBtn").disabled=true;$("scanBtn").disabled=true;
- $("kegCode").value=code;message("fillMessage","QR očitan: "+code+". Automatski spremam punjenje…");
- try{
-  const {error}=await client.rpc("register_keg_fill",{p_keg_code:code,p_beer_name:beer,p_lot_number:lot,p_transfer_date:date});
-  if(error){message("fillMessage","Greška pri spremanju punjenja: "+error.message,true);return}
-  message("fillMessage","Punjenje za "+code+" uspješno je spremljeno. Pivo: "+beer+", LOT: "+lot+", datum: "+date+".");
-  $("kegCode").value="";await loadKegs();
- }finally{fillSaving=false;$("fillBtn").disabled=false;$("scanBtn").disabled=false}
+let fillCart=[],fillCartMeta=null,fillSaving=false;
+function getFillMeta(){
+ return {beer:$("beer").value.trim(),lot:$("lot").value.trim(),date:$("fillDate").value};
 }
-$("fillBtn").addEventListener("click",()=>saveFillForCode($("kegCode").value));
+function renderFillCart(){
+ $("fillCartPanel").classList.toggle("hidden",fillCart.length===0);
+ $("fillCartCount").textContent=fillCart.length+" kegova";
+ $("fillCartDetails").textContent=fillCartMeta?"Pivo: "+fillCartMeta.beer+" · LOT: "+fillCartMeta.lot+" · Datum: "+fillCartMeta.date:"";
+ $("fillCartRows").innerHTML=fillCart.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td><span class="pill '+escapeHtml(k.status)+'">'+escapeHtml(statusNames[k.status]||k.status)+'</span></td><td><button type="button" class="danger removeFillCartKeg" data-code="'+escapeHtml(k.code)+'">Ukloni</button></td></tr>').join("");
+ $("fillCartRows").querySelectorAll(".removeFillCartKeg").forEach(btn=>btn.addEventListener("click",()=>{fillCart=fillCart.filter(k=>k.code!==btn.dataset.code);if(!fillCart.length)fillCartMeta=null;renderFillCart()}));
+}
+function addKegToFillCart(rawCode){
+ const meta=getFillMeta(),code=String(rawCode||"").trim();
+ if(!meta.beer||!meta.lot||!meta.date){message("fillMessage","Prije dodavanja kegova unesi naziv piva, LOT broj i datum punjenja.",true);return}
+ if(!/^Keg-[0-9]{3,}$/i.test(code)){message("fillMessage","Unesi valjanu oznaku bačve, npr. Keg-001.",true);return}
+ if(fillCartMeta&&(meta.beer!==fillCartMeta.beer||meta.lot!==fillCartMeta.lot||meta.date!==fillCartMeta.date)){message("fillMessage","Jedan popis može sadržavati samo isto pivo, LOT i datum. Isprazni popis prije promjene podataka.",true);return}
+ const keg=kegs.find(k=>k.code.toLowerCase()===code.toLowerCase());
+ if(keg&&keg.status==="full"){message("fillMessage","Bačva "+keg.code+" već je u statusu Pun.",true);return}
+ if(fillCart.some(k=>k.code.toLowerCase()===code.toLowerCase())){message("fillMessage",code+" je već na popisu.");$("kegCode").value="";return}
+ if(!fillCartMeta)fillCartMeta=meta;
+ fillCart.push(keg||{id:null,code,status:"in_preparation"});
+ renderFillCart();$("kegCode").value="";
+ message("fillMessage",code+" dodan na popis za punjenje. Još nije spremljen u evidenciju.");
+}
+$("fillBtn").addEventListener("click",()=>addKegToFillCart($("kegCode").value));
+$("confirmFillCartBtn").addEventListener("click",async()=>{
+ if(!fillCart.length||!fillCartMeta||fillSaving)return;
+ const codes=fillCart.map(k=>k.code),meta=fillCartMeta;
+ if(!confirm("Potvrđuješ punjenje za "+codes.length+" kegova?\\n\\n"+codes.join(", ")+"\\n\\nPivo: "+meta.beer+"\\nLOT: "+meta.lot+"\\nDatum: "+meta.date))return;
+ fillSaving=true;$("confirmFillCartBtn").disabled=true;$("clearFillCartBtn").disabled=true;$("fillBtn").disabled=true;$("scanBtn").disabled=true;
+ let done=[],failed=[];
+ for(const code of codes){
+  const {error}=await client.rpc("register_keg_fill",{p_keg_code:code,p_beer_name:meta.beer,p_lot_number:meta.lot,p_transfer_date:meta.date});
+  if(error)failed.push(code+": "+error.message);else done.push(code);
+ }
+ await loadKegs();
+ fillCart=fillCart.filter(k=>!done.includes(k.code));if(!fillCart.length)fillCartMeta=null;renderFillCart();
+ fillSaving=false;$("confirmFillCartBtn").disabled=false;$("clearFillCartBtn").disabled=false;$("fillBtn").disabled=false;$("scanBtn").disabled=false;
+ if(failed.length)message("fillCartMessage","Uspješno napunjeno: "+done.length+". Nije uspjelo: "+failed.join("; "),true);
+ else message("fillCartMessage","Uspješno je evidentirano punjenje za svih "+done.length+" kegova.");
+});
+$("clearFillCartBtn").addEventListener("click",()=>{fillCart=[];fillCartMeta=null;renderFillCart();message("fillCartMessage","Popis za punjenje je ispražnjen.")});
 $("scanBtn").addEventListener("click",async()=>{
  const box=$("scanner");box.classList.toggle("hidden");
  if(box.classList.contains("hidden")){if(scanner){try{await scanner.stop();scanner.clear()}catch(e){}scanner=null}return}
@@ -291,9 +317,7 @@ $("scanBtn").addEventListener("click",async()=>{
   await scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{
    await rememberCamera();
    const code=decoded.trim();
-   try{await scanner.stop();scanner.clear()}catch(e){}
-   scanner=null;box.classList.add("hidden");
-   await saveFillForCode(code);
+   addKegToFillCart(code);
   });
  }catch(e){if(scanner){try{await scanner.stop();scanner.clear()}catch(x){}scanner=null}message("fillMessage","Ne mogu pokrenuti kameru. Provjeri dopuštenje za kameru i otvori aplikaciju preko HTTPS-a. "+e,true)}
 });
