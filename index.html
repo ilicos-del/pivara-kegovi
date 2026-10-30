@@ -100,7 +100,7 @@ function renderEmptiedSession(){
 }
 async function registerEmptiedKeg(rawCode){
  const code=String(rawCode||"").trim();
- if(!/^Keg-\\d{3,}$/.test(code)){message("statusMessage","QR kod nije valjana oznaka kega.",true);return false}
+ if(!/^Keg-\d{3,}$/.test(code)){message("statusMessage","QR kod nije valjana oznaka kega.",true);return false}
  if(emptiedCodes.has(code)){message("statusMessage",code+" je već evidentiran u ovom skeniranju.");return false}
  const keg=kegs.find(k=>k.code===code);
  if(!keg){message("statusMessage","Keg "+code+" nije pronađen u evidenciji.",true);return false}
