@@ -103,7 +103,7 @@ async function registerEmptiedKeg(rawCode){
 }
 async function registerWashedKeg(rawCode){
  const code=String(rawCode||"").trim();
- if(!/^Keg-\\d{3,}$/.test(code)){message("statusMessage","QR kod nije valjana oznaka kega.",true);return}
+ if(!/^Keg-\d{3,}$/.test(code)){message("statusMessage","QR kod nije valjana oznaka kega.",true);return}
  const keg=kegs.find(k=>k.code===code);
  if(!keg){message("statusMessage","Keg "+code+" nije pronađen u evidenciji.",true);return}
  if(keg.status!=="empty"){message("statusMessage","Keg "+code+" nije u statusu Prazan. Trenutačni status: "+(statusNames[keg.status]||keg.status)+".",true);return}
