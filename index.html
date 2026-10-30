@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#173b2b">
+<title>Pivara | Evidencija bačvi</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<style>
+:root{--green:#173b2b;--green2:#24543d;--cream:#f5f3eb;--paper:#fffefa;--muted:#718078;--line:#e2e5dc;--red:#a33b32;--gold:#c49a43}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:#1d3026;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:var(--green);color:#fff;padding:22px max(20px,calc((100% - 1080px)/2));display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{font-size:24px;font-weight:800;letter-spacing:2px}.brand small{display:block;font-size:11px;font-weight:500;letter-spacing:2.5px;color:#d5dfd4;margin-top:4px}
+main{max-width:1080px;margin:26px auto;padding:0 18px 48px}.panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:0 5px 20px #1933260a}
+h1{font-size:25px;margin:0 0 6px}h2{font-size:18px;margin:0 0 16px}.sub{color:var(--muted);font-size:14px;margin:0 0 18px}
+label{display:block;font-size:13px;font-weight:700;margin:0 0 6px;color:#405448}
+input,select{width:100%;border:1px solid #d6ddd3;border-radius:10px;padding:12px;background:white;font:inherit;color:#20372a;min-height:46px}
+button{border:0;border-radius:10px;background:var(--green);color:white;font:inherit;font-weight:700;padding:12px 16px;min-height:44px;cursor:pointer}
+button.secondary{background:#e8eee7;color:var(--green)}button.danger{background:#f8e9e6;color:var(--red)}button:disabled{opacity:.5;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{min-width:0}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
+.hidden{display:none!important}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}.stat{background:#f1f4ee;border-radius:12px;padding:13px}.stat strong{display:block;font-size:24px;color:var(--green)}.stat span{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:12px 9px;border-bottom:1px solid var(--line)}th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.pill{display:inline-block;border-radius:99px;padding:5px 9px;font-size:12px;font-weight:700;background:#e9eee8;color:#36513e}.pill.full{background:#e3efe5;color:#23613a}.pill.empty{background:#f7edda;color:#8a6221}.pill.washing{background:#e7edf4;color:#3c5d7d}
+#scanner{max-width:420px;margin-top:14px}#message{margin-top:12px;font-size:14px;color:var(--muted)}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.toolbar input{max-width:300px}
+@media(max-width:650px){header{padding:18px}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}main{margin-top:16px}.panel{padding:16px}table{font-size:12px}th,td{padding:9px 5px}}
+</style>
+</head>
+<body>
+<header><div class="brand">PIVARA<small>EVIDENCIJA BAČVI</small></div><button id="logoutBtn" class="secondary hidden">Odjava</button></header>
+<main>
+<section id="loginPanel" class="panel">
+<h1>Prijava u sustav</h1><p class="sub">Evidencija i praćenje bačvi Pivare</p>
+<div class="grid"><div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" placeholder="ime@pivara.hr"></div><div class="field"><label for="password">Lozinka</label><input id="password" type="password" autocomplete="current-password" placeholder="Lozinka"></div></div>
+<div class="actions"><button id="loginBtn">Prijavi se</button></div><div id="loginMessage" role="status"></div>
+</section>
+<section id="appPanel" class="hidden">
+<div class="panel"><h1>Pregled bačvi</h1><p class="sub">Trenutačno stanje svih bačvi u sustavu</p>
+<div class="stats"><div class="stat"><strong id="countAll">0</strong><span>Ukupno</span></div><div class="stat"><strong id="countFull">0</strong><span>Punih</span></div><div class="stat"><strong id="countEmpty">0</strong><span>Praznih</span></div><div class="stat"><strong id="countWash">0</strong><span>U pranju</span></div></div>
+<div class="toolbar"><input id="search" placeholder="Pretraži bačvu, pivo ili LOT…"><select id="statusFilter" style="max-width:190px"><option value="">Svi statusi</option><option value="in_preparation">U pripremi</option><option value="full">Pun</option><option value="empty">Prazan</option><option value="washing">U pranju</option></select><button class="secondary" id="refreshBtn">Osvježi</button></div>
+<div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th>Pivo</th><th>LOT</th><th>Punjenje</th></tr></thead><tbody id="kegRows"><tr><td colspan="5">Učitavanje…</td></tr></tbody></table></div></div>
+<div class="panel"><h2>Evidentiraj punjenje</h2><p class="sub">Unesi podatke piva i skeniraj QR kod bačve.</p>
+<div class="grid"><div class="field"><label for="beer">Naziv piva</label><input id="beer" placeholder="Npr. Pilsner" list="beerList"><datalist id="beerList"><option>Pilsner</option><option>IPA</option><option>Pale Ale</option><option>Stout</option><option>Raspberry Sour</option></datalist></div><div class="field"><label for="lot">LOT broj</label><input id="lot" placeholder="Npr. LOT-2026-01"></div><div class="field"><label for="fillDate">Datum punjenja</label><input id="fillDate" type="date"></div><div class="field"><label for="kegCode">Oznaka bačve</label><input id="kegCode" placeholder="Keg-001"></div></div>
+<div class="actions"><button id="scanBtn" class="secondary">Skeniraj QR kod</button><button id="fillBtn">Spremi punjenje</button></div><div id="scanner" class="hidden"></div><div id="fillMessage" role="status"></div>
+</div>
+<div class="panel"><h2>Promjena statusa bačve</h2><div class="grid"><div class="field"><label for="statusKeg">Oznaka bačve</label><input id="statusKeg" placeholder="Keg-001"></div><div class="field"><label for="newStatus">Novi status</label><select id="newStatus"><option value="in_preparation">U pripremi</option><option value="full">Pun</option><option value="empty">Prazan</option><option value="washing">U pranju</option></select></div></div><div class="actions"><button id="statusBtn">Spremi status</button></div><div id="statusMessage" role="status"></div></div>
+</section>
+</main>
+<script src="./config.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let client=null, scanner=null, currentUser=null, profile=null, kegs=[];
+const statusNames={in_preparation:"U pripremi",full:"Pun",empty:"Prazan",washing:"U pranju"};
+function message(id,text,error=false){$(id).textContent=text;$(id).style.color=error?"#a33b32":"#52705b"}
+function configReady(){return window.PIVARA_SUPABASE_URL&&window.PIVARA_SUPABASE_ANON_KEY&&!window.PIVARA_SUPABASE_URL.includes("OVDJE")&&!window.PIVARA_SUPABASE_ANON_KEY.includes("OVDJE")}
+async function init(){
+ if(!configReady()){message("loginMessage","Potrebno je unijeti Supabase Project URL i Publishable/anon key u datoteku config.js.",true);$("loginBtn").disabled=true;return}
+ client=window.supabase.createClient(window.PIVARA_SUPABASE_URL,window.PIVARA_SUPABASE_ANON_KEY);
+ const {data:{session}}=await client.auth.getSession();
+ if(session) await showApp(session.user);
+}
+async function showApp(user){
+ currentUser=user;
+ const {data:p,error}=await client.from("profiles").select("role,email").eq("user_id",user.id).single();
+ if(error){message("loginMessage","Prijava je uspjela, ali profil nije dostupan: "+error.message,true);return}
+ profile=p;
+ $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("logoutBtn").classList.remove("hidden");
+ await loadKegs();
+}
+async function loadKegs(){
+ const {data,error}=await client.from("kegs").select("id,code,status,current_beer,current_lot,transferred_on,updated_at").order("code");
+ if(error){$("kegRows").innerHTML='<tr><td colspan="5">Greška: '+escapeHtml(error.message)+'</td></tr>';return}
+ kegs=data||[];renderKegs();
+}
+function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function renderKegs(){
+ $("countAll").textContent=kegs.length;$("countFull").textContent=kegs.filter(k=>k.status==="full").length;$("countEmpty").textContent=kegs.filter(k=>k.status==="empty").length;$("countWash").textContent=kegs.filter(k=>k.status==="washing").length;
+ const q=$("search").value.toLowerCase(), f=$("statusFilter").value;
+ const rows=kegs.filter(k=>(!f||k.status===f)&&[k.code,k.current_beer,k.current_lot].some(v=>String(v||"").toLowerCase().includes(q)));
+ $("kegRows").innerHTML=rows.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td><span class="pill '+escapeHtml(k.status)+'">'+escapeHtml(statusNames[k.status]||k.status)+'</span></td><td>'+escapeHtml(k.current_beer||"—")+'</td><td>'+escapeHtml(k.current_lot||"—")+'</td><td>'+escapeHtml(k.transferred_on||"—")+'</td></tr>').join("")||'<tr><td colspan="5">Nema rezultata.</td></tr>';
+}
+$("loginBtn").addEventListener("click",async()=>{message("loginMessage","Prijavljujem…");const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error){message("loginMessage",error.message,true);return}await showApp(data.user)});
+$("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();location.reload()});
+$("refreshBtn").addEventListener("click",loadKegs);$("search").addEventListener("input",renderKegs);$("statusFilter").addEventListener("change",renderKegs);
+$("fillDate").value=new Date().toISOString().slice(0,10);
+$("fillBtn").addEventListener("click",async()=>{
+ const beer=$("beer").value.trim(),lot=$("lot").value.trim(),date=$("fillDate").value,code=$("kegCode").value.trim();
+ if(!beer||!lot||!date||!/^Keg-\d{3,}$/.test(code)){message("fillMessage","Popuni sva polja i unesi oznaku u obliku Keg-001.",true);return}
+ message("fillMessage","Spremam punjenje…");
+ const {error}=await client.rpc("register_keg_fill",{p_keg_code:code,p_beer_name:beer,p_lot_number:lot,p_transfer_date:date});
+ if(error){message("fillMessage","Greška: "+error.message,true);return}
+ message("fillMessage","Punjenje je spremljeno za "+code+".");$("kegCode").value="";await loadKegs();
+});
+$("statusBtn").addEventListener("click",async()=>{
+ const code=$("statusKeg").value.trim(),status=$("newStatus").value;
+ if(!/^Keg-\d{3,}$/.test(code)){message("statusMessage","Unesi oznaku u obliku Keg-001.",true);return}
+ message("statusMessage","Spremam status…");
+ const {error}=await client.rpc("change_keg_status",{p_keg_code:code,p_new_status:status});
+ if(error){message("statusMessage","Greška: "+error.message,true);return}
+ message("statusMessage","Status bačve "+code+" je promijenjen.");await loadKegs();
+});
+$("scanBtn").addEventListener("click",async()=>{
+ const box=$("scanner");box.classList.toggle("hidden");
+ if(box.classList.contains("hidden")){if(scanner){await scanner.stop();scanner.clear();scanner=null}return}
+ if(!window.Html5Qrcode){message("fillMessage","QR skener se nije učitao.",true);return}
+ try{scanner=new Html5Qrcode("scanner");await scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{$("kegCode").value=decoded.trim();message("fillMessage","Skenirana bačva: "+decoded);await scanner.stop();scanner.clear();scanner=null;box.classList.add("hidden")})}catch(e){message("fillMessage","Ne mogu pokrenuti kameru. Provjeri dopuštenje za kameru i otvori aplikaciju preko HTTPS-a. "+e,true)}
+});
+clientSafeAuth();
+function clientSafeAuth(){if(configReady())init()}
+</script>
+</body>
+</html>
