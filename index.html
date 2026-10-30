@@ -56,7 +56,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <script>
 const $=id=>document.getElementById(id);
 let client=null, scanner=null, emptyScanner=null, searchScanner=null, currentUser=null, profile=null, kegs=[];
-const statusNames={full:"Pun",empty:"Prazan",washed:"Opran",washing:"U pranju",in_preparation:"U pripremi"};
+const statusNames={full:"Pun",empty:"Prazan",washed:"Opran",washing:"U pranju"};
 function message(id,text,error=false){$(id).textContent=text;$(id).style.color=error?"#a33b32":"#52705b"}
 function configReady(){return window.PIVARA_SUPABASE_URL&&window.PIVARA_SUPABASE_ANON_KEY&&!window.PIVARA_SUPABASE_URL.includes("OVDJE")&&!window.PIVARA_SUPABASE_ANON_KEY.includes("OVDJE")}
 async function init(){
@@ -147,7 +147,7 @@ function addKegToWashCart(rawCode){
  if(!/^Keg-[0-9]{3,}$/i.test(code)){message("searchScanMessage","Unesi valjanu oznaku bačve, npr. Keg-001.",true);return}
  const keg=kegs.find(k=>k.code.toLowerCase()===code.toLowerCase());
  if(!keg){message("searchScanMessage","Bačva "+code+" nije pronađena u evidenciji.",true);return}
- if(!["empty","in_preparation"].includes(keg.status)){message("searchScanMessage","Bačva "+keg.code+" nije u statusu Prazan ili U pripremi. Status Pun nije dopušten. Trenutačni status: "+(statusNames[keg.status]||keg.status)+".",true);return}
+ if(keg.status!=="empty"){message("searchScanMessage","Bačva "+keg.code+" nije u statusu Prazan. Status Pun i Opran nisu dopušteni. Trenutačni status: "+(statusNames[keg.status]||keg.status)+".",true);return}
  if(washCart.some(k=>k.id===keg.id)){message("searchScanMessage",keg.code+" je već na popisu.");$("search").value="";return}
  washCart.push(keg);renderWashCart();$("search").value="";
  message("searchScanMessage",keg.code+" dodan na popis za pranje.");
