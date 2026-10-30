@@ -24,7 +24,15 @@ button.secondary{background:#e8eee7;color:var(--green)}button.danger{background:
 .hidden{display:none!important}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}.stat{background:#f1f4ee;border-radius:12px;padding:13px}.stat strong{display:block;font-size:24px;color:var(--green)}.stat span{font-size:12px;color:var(--muted)}.adminStat{width:100%;border:0;text-align:left;cursor:pointer;font:inherit;color:inherit}.adminStat:focus-visible{outline:3px solid var(--gold);outline-offset:2px}.adminStat span{display:block}
 table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:12px 9px;border-bottom:1px solid var(--line)}th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .pill{display:inline-block;border-radius:99px;padding:5px 9px;font-size:12px;font-weight:700;background:#e9eee8;color:#36513e}.pill.full{background:#e3efe5;color:#23613a}.pill.empty{background:#f7edda;color:#8a6221}.pill.washing{background:#e7edf4;color:#3c5d7d}.pill.shipped{background:#e8e8ee;color:#55556b}
-#scanner{max-width:420px;margin-top:14px}#message{margin-top:12px;font-size:14px;color:var(--muted)}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.toolbar input{max-width:300px}.statusAction{border-top:1px solid var(--line);margin-top:18px;padding-top:18px}.statusAction h2{margin-bottom:14px}
+#scanner{max-width:420px;margin-top:14px}
+.modalBackdrop{position:fixed;inset:0;background:#14251dcc;z-index:1000;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+.modalCard{width:min(620px,100%);max-height:92vh;overflow:auto;background:var(--paper);border-radius:16px;padding:22px;box-shadow:0 20px 60px #0004}
+.customerList{display:grid;gap:8px;margin-top:12px}
+.customerOption{width:100%;text-align:left;background:#f0f3ed;color:#20372a;border:1px solid var(--line)}
+.customerOption small{display:block;font-weight:400;color:var(--muted);margin-top:4px}
+.modalClose{float:right}
+.selectedCustomer{padding:12px;border-radius:10px;background:#edf3eb;margin:10px 0 14px;font-size:14px}
+@media(max-width:650px){.modalCard{padding:16px}}#message{margin-top:12px;font-size:14px;color:var(--muted)}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.toolbar input{max-width:300px}.statusAction{border-top:1px solid var(--line);margin-top:18px;padding-top:18px}.statusAction h2{margin-bottom:14px}
 @media(max-width:650px){header{padding:18px}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}main{margin-top:16px}.panel{padding:16px}table{font-size:12px}th,td{padding:9px 5px}}
 </style>
 </head>
@@ -44,7 +52,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="fullKegsPanel" class="panel hidden"><div class="row"><h2>Popis punih bačvi</h2><button class="secondary" id="backFromFullKegsBtn">← Natrag</button></div><p class="sub">Pregled svih punih bačvi, piva, datuma punjenja i LOT brojeva.</p><div class="toolbar"><input id="fullKegsSearch" placeholder="Pretraži bačvu, pivo ili LOT…"><button class="secondary" id="refreshFullKegsBtn">Osvježi</button></div><div style="overflow-x:auto"><table><thead><tr><th>Broj bačve</th><th>Naziv piva</th><th>Datum punjenja</th><th>LOT broj</th></tr></thead><tbody id="fullKegsRows"><tr><td colspan="4">Učitavanje…</td></tr></tbody></table></div></div>
 <div id="emptyKegsPanel" class="panel hidden"><div class="row"><h2>Popis praznih bačvi</h2><button class="secondary" id="backFromEmptyKegsBtn">← Natrag</button></div><p class="sub">Pregled svih praznih bačvi, piva, datuma punjenja i LOT brojeva.</p><div class="toolbar"><input id="emptyKegsSearch" placeholder="Pretraži bačvu, pivo ili LOT…"><button class="secondary" id="refreshEmptyKegsBtn">Osvježi</button></div><div style="overflow-x:auto"><table><thead><tr><th>Broj bačve</th><th>Naziv piva</th><th>Datum punjenja</th><th>LOT broj</th></tr></thead><tbody id="emptyKegsRows"></tbody></table></div></div><div id="washedKegsPanel" class="panel hidden"><div class="row"><h2>Popis opranih bačvi</h2><button class="secondary" id="backFromWashedKegsBtn">← Natrag</button></div><p class="sub">Pregled svih opranih bačvi, piva, datuma punjenja i LOT brojeva.</p><div class="toolbar"><input id="washedKegsSearch" placeholder="Pretraži bačvu, pivo ili LOT…"><button class="secondary" id="refreshWashedKegsBtn">Osvježi</button></div><div style="overflow-x:auto"><table><thead><tr><th>Broj bačve</th><th>Naziv piva</th><th>Datum punjenja</th><th>LOT broj</th></tr></thead><tbody id="washedKegsRows"></tbody></table></div></div><div id="kegWorkPanel" class="panel hidden"><div class="row"><h2 id="workTitle">Istočeni kegovi</h2><button class="secondary" id="backHomeBtn">← Natrag</button></div><p class="sub" id="workDescription">Popis bačvi koje su ispražnjene i čekaju pranje.</p><div class="toolbar"><input id="search" placeholder="Upiši oznaku, npr. Keg-001"><button type="button" class="secondary" id="searchScanBtn">📷 Skeniraj QR kod</button><button class="secondary" id="refreshBtn">+ Dodaj na popis</button></div><div id="searchScanner" class="hidden"></div><div id="searchScanMessage" role="status"></div><section id="emptyCartPanel" class="panel hidden"><div class="row"><h2>Popis za istakanje</h2><strong id="emptyCartCount">0 kegova</strong></div><div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th></th></tr></thead><tbody id="emptyCartRows"></tbody></table></div><div class="actions"><button id="confirmEmptyCartBtn">Potvrdi istakanje</button><button id="clearEmptyCartBtn" class="secondary">Isprazni popis</button></div><div id="emptyCartMessage" role="status"></div></section>
 <section id="washCartPanel" class="panel hidden"><div class="row"><h2>Popis za pranje</h2><strong id="washCartCount">0 kegova</strong></div><div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th></th></tr></thead><tbody id="washCartRows"></tbody></table></div><div class="actions"><button id="confirmWashCartBtn">Potvrdi pranje</button><button id="clearWashCartBtn" class="secondary">Isprazni popis</button></div><div id="washCartMessage" role="status"></div></section>
-<section id="shippingCartPanel" class="panel hidden"><div class="row"><h2>Popis za otpremu</h2><strong id="shippingCartCount">0 kegova</strong></div><div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th></th></tr></thead><tbody id="shippingCartRows"></tbody></table></div><div class="actions"><button id="confirmShippingCartBtn">Potvrdi otpremu</button><button id="clearShippingCartBtn" class="secondary">Isprazni popis</button></div><div id="shippingCartMessage" role="status"></div></section>
+<section id="shippingCartPanel" class="panel hidden"><div class="row"><h2>Popis za otpremu</h2><strong id="shippingCartCount">0 kegova</strong></div><div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th></th></tr></thead><tbody id="shippingCartRows"></tbody></table></div><div id="selectedCustomerSummary" class="selectedCustomer">Kupac nije odabran.</div><div class="actions"><button id="chooseCustomerBtn" class="secondary">Odaberi kupca</button><button id="confirmShippingCartBtn" disabled>Potvrdi otpremu</button><button id="clearShippingCartBtn" class="secondary">Isprazni popis</button></div><div id="shippingCartMessage" role="status"></div></section>
 <div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th>Pivo</th><th>LOT</th><th>Punjenje</th></tr></thead><tbody id="kegRows"><tr><td colspan="5">Učitavanje…</td></tr></tbody></table></div>
 </div>
 <div id="fillWorkPanel" class="panel hidden"><div class="row"><h2>Punjenje kegova</h2><button class="secondary" id="backFillBtn">← Natrag</button></div><p class="sub">Unesi naziv piva, LOT i datum, zatim dodaj kegove na popis. Punjenje se sprema tek nakon potvrde cijelog popisa.</p>
@@ -53,6 +61,8 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </div>
 </section>
 </main>
+<div id="customerPickerModal" class="modalBackdrop hidden" role="dialog" aria-modal="true" aria-labelledby="customerPickerTitle"><div class="modalCard"><button type="button" id="closeCustomerPicker" class="secondary modalClose">Zatvori</button><h2 id="customerPickerTitle">Odaberi kupca</h2><div class="field"><label for="customerSearch">Pretraži spremljene kupce</label><input id="customerSearch" placeholder="Naziv, OIB, mjesto ili adresa"></div><div id="customerList" class="customerList"></div><div id="customerPickerMessage" role="status"></div><div class="actions"><button type="button" id="openCreateCustomerBtn">Kreiraj novog kupca</button></div></div></div>
+<div id="createCustomerModal" class="modalBackdrop hidden" role="dialog" aria-modal="true" aria-labelledby="createCustomerTitle"><div class="modalCard"><button type="button" id="closeCreateCustomer" class="secondary modalClose">Zatvori</button><h2 id="createCustomerTitle">Kreiraj novog kupca</h2><div class="grid"><div class="field"><label for="newCustomerName">Naziv *</label><input id="newCustomerName" required maxlength="180"></div><div class="field"><label for="newCustomerAddress">Adresa *</label><input id="newCustomerAddress" required maxlength="220"></div><div class="field"><label for="newCustomerPostal">Poštanski broj *</label><input id="newCustomerPostal" required maxlength="20"></div><div class="field"><label for="newCustomerCity">Mjesto *</label><input id="newCustomerCity" required maxlength="120"></div><div class="field"><label for="newCustomerOib">OIB *</label><input id="newCustomerOib" inputmode="numeric" maxlength="11" pattern="[0-9]{11}" placeholder="11 znamenki" required></div><div class="field"><label for="newCustomerPhone">Kontakt telefon (opcionalno)</label><input id="newCustomerPhone" type="tel" maxlength="40"></div></div><div class="actions"><button type="button" id="addCustomerBtn">Dodaj kupca</button><button type="button" id="cancelCreateCustomer" class="secondary">Odustani</button></div><div id="createCustomerMessage" role="status"></div></div></div>
 <script src="./config.js"></script>
 <script>
 const $=id=>document.getElementById(id);
@@ -137,13 +147,44 @@ function addKegToEmptyCart(rawCode){
  emptyCart.push(keg);renderEmptyCart();$("search").value="";
  message("searchScanMessage",keg.code+" dodan na popis. Možeš dodati sljedeći keg.");
 }
-let shippingCart=[];
+let shippingCart=[],customers=[],selectedCustomer=null;
 function renderShippingCart(){
  $("shippingCartPanel").classList.toggle("hidden",shippingCart.length===0);
  $("shippingCartCount").textContent=shippingCart.length+" kegova";
  $("shippingCartRows").innerHTML=shippingCart.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td><span class="pill full">Pun</span></td><td><button type="button" class="danger removeShippingCartKeg" data-code="'+escapeHtml(k.code)+'">Ukloni</button></td></tr>').join("");
  $("shippingCartRows").querySelectorAll(".removeShippingCartKeg").forEach(btn=>btn.addEventListener("click",()=>{shippingCart=shippingCart.filter(k=>k.code!==btn.dataset.code);renderShippingCart()}));
+ $("confirmShippingCartBtn").disabled=shippingCart.length===0||!selectedCustomer;
+ $("selectedCustomerSummary").textContent=selectedCustomer?"Odabrani kupac: "+selectedCustomer.name+" · OIB "+selectedCustomer.oib:"Kupac nije odabran.";
 }
+async function loadCustomers(){
+ const {data,error}=await client.from("customers").select("id,name,address,postal_code,city,oib,phone").order("name");
+ if(error){message("customerPickerMessage","Greška pri učitavanju kupaca: "+error.message,true);return}
+ customers=data||[];renderCustomerList();
+}
+function renderCustomerList(){
+ const q=$("customerSearch").value.trim().toLowerCase();
+ const rows=customers.filter(x=>[x.name,x.oib,x.city,x.address,x.postal_code].some(v=>String(v||"").toLowerCase().includes(q)));
+ $("customerList").innerHTML=rows.map(x=>'<button type="button" class="customerOption" data-id="'+escapeHtml(x.id)+'">'+escapeHtml(x.name)+'<small>'+escapeHtml(x.address)+', '+escapeHtml(x.postal_code)+' '+escapeHtml(x.city)+' · OIB '+escapeHtml(x.oib)+'</small></button>').join("")||'<p class="sub">Nema pronađenih kupaca.</p>';
+ $("customerList").querySelectorAll(".customerOption").forEach(btn=>btn.addEventListener("click",()=>{selectedCustomer=customers.find(x=>x.id===btn.dataset.id)||null;$("customerPickerModal").classList.add("hidden");renderShippingCart();message("shippingCartMessage","Odabran kupac: "+selectedCustomer.name+".")}));
+}
+$("chooseCustomerBtn").addEventListener("click",async()=>{$("customerPickerModal").classList.remove("hidden");$("customerSearch").value="";await loadCustomers();$("customerSearch").focus()});
+$("closeCustomerPicker").addEventListener("click",()=>$("customerPickerModal").classList.add("hidden"));
+$("customerSearch").addEventListener("input",renderCustomerList);
+$("openCreateCustomerBtn").addEventListener("click",()=>$("createCustomerModal").classList.remove("hidden"));
+function closeCreateCustomerModal(){$("createCustomerModal").classList.add("hidden");$("createCustomerMessage").textContent=""}
+$("closeCreateCustomer").addEventListener("click",closeCreateCustomerModal);
+$("cancelCreateCustomer").addEventListener("click",closeCreateCustomerModal);
+$("addCustomerBtn").addEventListener("click",async()=>{
+ const name=$("newCustomerName").value.trim(),address=$("newCustomerAddress").value.trim(),postal_code=$("newCustomerPostal").value.trim(),city=$("newCustomerCity").value.trim(),oib=$("newCustomerOib").value.trim(),phone=$("newCustomerPhone").value.trim();
+ if(!name||!address||!postal_code||!city||!oib){message("createCustomerMessage","Popuni sva obavezna polja označena zvjezdicom.",true);return}
+ if(!/^[0-9]{11}$/.test(oib)){message("createCustomerMessage","OIB mora sadržavati točno 11 znamenki.",true);return}
+ $("addCustomerBtn").disabled=true;
+ const {data,error}=await client.from("customers").insert({name,address,postal_code,city,oib,phone:phone||null,created_by:currentUser.id}).select("id,name,address,postal_code,city,oib,phone").single();
+ $("addCustomerBtn").disabled=false;
+ if(error){message("createCustomerMessage",error.code==="23505"?"Kupac s ovim OIB-om već postoji.":error.message,true);return}
+ customers.push(data);selectedCustomer=data;closeCreateCustomerModal();$("customerPickerModal").classList.add("hidden");renderShippingCart();message("shippingCartMessage","Novi kupac "+data.name+" uspješno je dodan i odabran za otpremu.");
+ ["newCustomerName","newCustomerAddress","newCustomerPostal","newCustomerCity","newCustomerOib","newCustomerPhone"].forEach(id=>$(id).value="");
+});
 function addKegToShippingCart(rawCode){
  const code=String(rawCode||"").trim();
  if(!/^Keg-[0-9]{3,}$/i.test(code)){message("searchScanMessage","Unesi valjanu oznaku bačve, npr. Keg-001.",true);return}
@@ -191,24 +232,25 @@ $("confirmWashCartBtn").addEventListener("click",async()=>{
 $("clearWashCartBtn").addEventListener("click",()=>{washCart=[];renderWashCart();message("washCartMessage","Popis za pranje je ispražnjen.")});
 $("confirmShippingCartBtn").addEventListener("click",async()=>{
  if(!shippingCart.length)return;
- const codes=shippingCart.map(k=>k.code);
- if(!confirm("Potvrđuješ otpremu za "+codes.length+" kegova?\\n\\n"+codes.join(", ")+"\\n\\nStatus će se promijeniti iz Pun u Otpremljen."))return;
+ if(!selectedCustomer){message("shippingCartMessage","Prije potvrde otpreme odaberi kupca.",true);return}
+ const codes=shippingCart.map(k=>k.code),customer=selectedCustomer;
+ if(!confirm("Potvrđuješ otpremu za "+codes.length+" kegova?\\n\\nKupac: "+customer.name+"\\nOIB: "+customer.oib+"\\n\\n"+codes.join(", ")+"\\n\\nStatus će se promijeniti iz Pun u Otpremljen."))return;
  const {data:latest,error:checkError}=await client.from("kegs").select("code,status").in("code",codes);
  if(checkError){message("shippingCartMessage","Nije moguće provjeriti statuse kegova: "+checkError.message,true);return}
  const current=new Map((latest||[]).map(k=>[k.code.toLowerCase(),k.status]));
  const invalid=codes.filter(code=>current.get(code.toLowerCase())!=="full");
  if(invalid.length){message("shippingCartMessage","Otprema nije potvrđena. Ovi kegovi više nisu u statusu Pun ili nisu pronađeni: "+invalid.join(", "),true);await loadKegs();return}
- $("confirmShippingCartBtn").disabled=true;$("clearShippingCartBtn").disabled=true;
+ $("confirmShippingCartBtn").disabled=true;$("clearShippingCartBtn").disabled=true;$("chooseCustomerBtn").disabled=true;
  let done=[],failed=[];
  for(const code of codes){
-  const {error}=await client.rpc("change_keg_status",{p_keg_code:code,p_new_status:"shipped"});
+  const {error}=await client.rpc("ship_keg_to_customer",{p_keg_code:code,p_customer_id:customer.id});
   if(error)failed.push(code+": "+error.message);else done.push(code);
  }
  await loadKegs();
  shippingCart=shippingCart.filter(k=>!done.includes(k.code));renderShippingCart();
- $("confirmShippingCartBtn").disabled=false;$("clearShippingCartBtn").disabled=false;
+ $("confirmShippingCartBtn").disabled=shippingCart.length===0||!selectedCustomer;$("clearShippingCartBtn").disabled=false;$("chooseCustomerBtn").disabled=false;
  if(failed.length)message("shippingCartMessage","Uspješno otpremljeno: "+done.length+". Nije uspjelo: "+failed.join("; "),true);
- else message("shippingCartMessage","Uspješno je evidentirana otprema za svih "+done.length+" kegova.");
+ else message("shippingCartMessage","Uspješno je evidentirana otprema za svih "+done.length+" kegova kupcu "+customer.name+".");
 });
 $("clearShippingCartBtn").addEventListener("click",()=>{shippingCart=[];renderShippingCart();message("shippingCartMessage","Popis za otpremu je ispražnjen.")});
 $("confirmEmptyCartBtn").addEventListener("click",async()=>{
