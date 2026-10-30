@@ -90,7 +90,7 @@ function localToday(){const d=new Date();return d.getFullYear()+"-"+String(d.get
 async function stopEmptyScanner(){if(emptyScanner){try{await emptyScanner.stop();emptyScanner.clear()}catch(e){}emptyScanner=null}}
 async function registerEmptiedKeg(rawCode){
  const code=String(rawCode||"").trim();
- if(!/^Keg-\\d{3,}$/.test(code)){message("statusMessage","QR kod nije valjana oznaka kega.",true);return}
+ if(!/^Keg-\d{3,}$/.test(code)){message("statusMessage","QR kod nije valjana oznaka kega.",true);return}
  const keg=kegs.find(k=>k.code===code);
  if(!keg){message("statusMessage","Keg "+code+" nije pronađen u evidenciji.",true);return}
  if(keg.status!=="full"){message("statusMessage","Keg "+code+" nije u statusu Pun. Trenutačni status: "+(statusNames[keg.status]||keg.status)+".",true);return}
