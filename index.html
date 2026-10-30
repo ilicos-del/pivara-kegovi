@@ -120,7 +120,7 @@ $("washScanBtn").addEventListener("click",async()=>{
  box.classList.remove("hidden");
  try{
   emptyScanner=new Html5Qrcode("emptyScanner");
-  await emptyScanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{
+  await emptyScanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{await rememberCamera();
    await stopEmptyScanner();box.classList.add("hidden");await registerWashedKeg(decoded);
   });
  }catch(e){await stopEmptyScanner();box.classList.add("hidden");message("statusMessage","Ne mogu pokrenuti kameru. Dopusti pristup kameri i otvori aplikaciju preko HTTPS-a. "+e,true)}
@@ -132,7 +132,7 @@ $("emptyScanBtn").addEventListener("click",async()=>{
  box.classList.remove("hidden");
  try{
   emptyScanner=new Html5Qrcode("emptyScanner");
-  await emptyScanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{
+  await emptyScanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{await rememberCamera();
    await stopEmptyScanner();box.classList.add("hidden");await registerEmptiedKeg(decoded);
   });
  }catch(e){await stopEmptyScanner();box.classList.add("hidden");message("statusMessage","Ne mogu pokrenuti kameru. Dopusti pristup kameri i otvori aplikaciju preko HTTPS-a. "+e,true)}
@@ -159,7 +159,7 @@ $("scanBtn").addEventListener("click",async()=>{
  const box=$("scanner");box.classList.toggle("hidden");
  if(box.classList.contains("hidden")){if(scanner){await scanner.stop();scanner.clear();scanner=null}return}
  if(!window.Html5Qrcode){message("fillMessage","QR skener se nije učitao.",true);return}
- try{scanner=new Html5Qrcode("scanner");await scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{$("kegCode").value=decoded.trim();message("fillMessage","Skenirana bačva: "+decoded);await scanner.stop();scanner.clear();scanner=null;box.classList.add("hidden")})}catch(e){message("fillMessage","Ne mogu pokrenuti kameru. Provjeri dopuštenje za kameru i otvori aplikaciju preko HTTPS-a. "+e,true)}
+ try{scanner=new Html5Qrcode("scanner");await scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{await rememberCamera();$("kegCode").value=decoded.trim();message("fillMessage","Skenirana bačva: "+decoded);await scanner.stop();scanner.clear();scanner=null;box.classList.add("hidden")})}catch(e){message("fillMessage","Ne mogu pokrenuti kameru. Provjeri dopuštenje za kameru i otvori aplikaciju preko HTTPS-a. "+e,true)}
 });
 clientSafeAuth();
 function clientSafeAuth(){if(configReady())init()}
