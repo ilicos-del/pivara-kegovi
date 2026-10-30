@@ -125,6 +125,7 @@ function renderEmptyCart(){
  $("emptyCartRows").querySelectorAll(".removeCartKeg").forEach(btn=>btn.addEventListener("click",()=>{emptyCart=emptyCart.filter(k=>k.code!==btn.dataset.code);renderEmptyCart()}));
 }
 function addKegToEmptyCart(rawCode){
+ if($("workMenu").value==="washing"){addKegToWashCart(rawCode);return}
  const code=String(rawCode||"").trim();
  if(!/^Keg-[0-9]{3,}$/i.test(code)){message("searchScanMessage","Unesi valjanu oznaku bačve, npr. Keg-001.",true);return}
  const keg=kegs.find(k=>k.code.toLowerCase()===code.toLowerCase());
