@@ -98,9 +98,7 @@ async function registerEmptiedKeg(rawCode){
  message("statusMessage","Evidentiram istakanje za "+code+"…");
  const {error:statusError}=await client.rpc("change_keg_status",{p_keg_code:code,p_new_status:"empty"});
  if(statusError){message("statusMessage","Greška pri promjeni statusa: "+statusError.message,true);return}
- const {error:dateError}=await client.from("kegs").update({transferred_on:today}).eq("code",code);
- if(dateError){message("statusMessage","Status je promijenjen u Prazan, ali datum nije spremljen: "+dateError.message,true);await loadKegs();return}
- message("statusMessage",code+" je evidentiran kao Prazan. Datum istakanja: "+today+".");
+ message("statusMessage",code+" je evidentiran kao Prazan. Vrijeme promjene spremljeno je u povijest statusa: "+today+".");
  await loadKegs();
 }
 $("emptyScanBtn").addEventListener("click",async()=>{
