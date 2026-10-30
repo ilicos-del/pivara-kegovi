@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" rx="112" fill="#173b2b"/>
+<g transform="translate(86 102)" stroke="#f5f3eb" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+<path d="M72 42 Q170 8 268 42 L286 84 L286 284 Q170 330 54 284 L54 84 Z" fill="#b8793e"/>
+<path d="M54 84 Q170 120 286 84 M54 284 Q170 320 286 284" fill="none"/>
+<path d="M48 112 L292 112 M48 254 L292 254" fill="none" stroke-width="13"/>
+<path d="M170 14 L170 314" fill="none" stroke="#f5f3eb" stroke-width="10" opacity=".55"/>
+<path d="M22 80 L22 286 M318 80 L318 286" fill="none" stroke-width="15"/>
+<path d="M22 80 Q170 122 318 80 M22 286 Q170 328 318 286" fill="none" stroke-width="15"/>
+</g>
+<text x="256" y="456" text-anchor="middle" font-family="Arial,sans-serif" font-size="42" font-weight="800" letter-spacing="8" fill="#f5f3eb">PIVARA</text>
+</svg>
