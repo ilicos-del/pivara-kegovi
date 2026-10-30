@@ -43,7 +43,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </div>
 <div id="fullKegsPanel" class="panel hidden"><div class="row"><h2>Popis punih bačvi</h2><button class="secondary" id="backFromFullKegsBtn">← Natrag</button></div><p class="sub">Pregled svih punih bačvi, piva, datuma punjenja i LOT brojeva.</p><div class="toolbar"><input id="fullKegsSearch" placeholder="Pretraži bačvu, pivo ili LOT…"><button class="secondary" id="refreshFullKegsBtn">Osvježi</button></div><div style="overflow-x:auto"><table><thead><tr><th>Broj bačve</th><th>Naziv piva</th><th>Datum punjenja</th><th>LOT broj</th></tr></thead><tbody id="fullKegsRows"><tr><td colspan="4">Učitavanje…</td></tr></tbody></table></div></div>
 <div id="emptyKegsPanel" class="panel hidden"><div class="row"><h2>Popis praznih bačvi</h2><button class="secondary" id="backFromEmptyKegsBtn">← Natrag</button></div><p class="sub">Pregled svih praznih bačvi, piva, datuma punjenja i LOT brojeva.</p><div class="toolbar"><input id="emptyKegsSearch" placeholder="Pretraži bačvu, pivo ili LOT…"><button class="secondary" id="refreshEmptyKegsBtn">Osvježi</button></div><div style="overflow-x:auto"><table><thead><tr><th>Broj bačve</th><th>Naziv piva</th><th>Datum punjenja</th><th>LOT broj</th></tr></thead><tbody id="emptyKegsRows"></tbody></table></div></div><div id="washedKegsPanel" class="panel hidden"><div class="row"><h2>Popis opranih bačvi</h2><button class="secondary" id="backFromWashedKegsBtn">← Natrag</button></div><p class="sub">Pregled svih opranih bačvi, piva, datuma punjenja i LOT brojeva.</p><div class="toolbar"><input id="washedKegsSearch" placeholder="Pretraži bačvu, pivo ili LOT…"><button class="secondary" id="refreshWashedKegsBtn">Osvježi</button></div><div style="overflow-x:auto"><table><thead><tr><th>Broj bačve</th><th>Naziv piva</th><th>Datum punjenja</th><th>LOT broj</th></tr></thead><tbody id="washedKegsRows"></tbody></table></div></div><div id="kegWorkPanel" class="panel hidden"><div class="row"><h2 id="workTitle">Istočeni kegovi</h2><button class="secondary" id="backHomeBtn">← Natrag</button></div><p class="sub" id="workDescription">Popis bačvi koje su ispražnjene i čekaju pranje.</p><div class="toolbar"><input id="search" placeholder="Upiši oznaku, npr. Keg-001"><button type="button" class="secondary" id="searchScanBtn">📷 Skeniraj QR kod</button><button class="secondary" id="refreshBtn">+ Dodaj na popis</button></div><div id="searchScanner" class="hidden"></div><div id="searchScanMessage" role="status"></div><section id="emptyCartPanel" class="panel hidden"><div class="row"><h2>Popis za istakanje</h2><strong id="emptyCartCount">0 kegova</strong></div><div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th></th></tr></thead><tbody id="emptyCartRows"></tbody></table></div><div class="actions"><button id="confirmEmptyCartBtn">Potvrdi istakanje</button><button id="clearEmptyCartBtn" class="secondary">Isprazni popis</button></div><div id="emptyCartMessage" role="status"></div></section>
-<div class="actions"><button id="washScanBtn" class="hidden">📷 Skeniraj oprani keg</button></div><div id="emptyScanner" class="hidden"></div><div id="statusMessage" role="status"></div>
+<section id="washCartPanel" class="panel hidden"><div class="row"><h2>Popis za pranje</h2><strong id="washCartCount">0 kegova</strong></div><div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th></th></tr></thead><tbody id="washCartRows"></tbody></table></div><div class="actions"><button id="confirmWashCartBtn">Potvrdi pranje</button><button id="clearWashCartBtn" class="secondary">Isprazni popis</button></div><div id="washCartMessage" role="status"></div></section>
 <div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th>Pivo</th><th>LOT</th><th>Punjenje</th></tr></thead><tbody id="kegRows"><tr><td colspan="5">Učitavanje…</td></tr></tbody></table></div>
 </div>
 <div id="fillWorkPanel" class="panel hidden"><div class="row"><h2>Punjenje kegova</h2><button class="secondary" id="backFillBtn">← Natrag</button></div><p class="sub">Unesi naziv piva, LOT i datum. Nakon očitanja QR koda punjenje se automatski sprema.</p>
@@ -134,7 +134,41 @@ function addKegToEmptyCart(rawCode){
  emptyCart.push(keg);renderEmptyCart();$("search").value="";
  message("searchScanMessage",keg.code+" dodan na popis. Možeš dodati sljedeći keg.");
 }
-$("refreshBtn").addEventListener("click",()=>addKegToEmptyCart($("search").value));
+let washCart=[];
+function renderWashCart(){
+ $("washCartPanel").classList.toggle("hidden",washCart.length===0);
+ $("washCartCount").textContent=washCart.length+" kegova";
+ $("washCartRows").innerHTML=washCart.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td><span class="pill empty">Prazan</span></td><td><button type="button" class="danger removeWashCartKeg" data-code="'+escapeHtml(k.code)+'">Ukloni</button></td></tr>').join("");
+ $("washCartRows").querySelectorAll(".removeWashCartKeg").forEach(btn=>btn.addEventListener("click",()=>{washCart=washCart.filter(k=>k.code!==btn.dataset.code);renderWashCart()}));
+}
+function addKegToWashCart(rawCode){
+ const code=String(rawCode||"").trim();
+ if(!/^Keg-[0-9]{3,}$/i.test(code)){message("searchScanMessage","Unesi valjanu oznaku bačve, npr. Keg-001.",true);return}
+ const keg=kegs.find(k=>k.code.toLowerCase()===code.toLowerCase());
+ if(!keg){message("searchScanMessage","Bačva "+code+" nije pronađena u evidenciji.",true);return}
+ if(keg.status!=="empty"){message("searchScanMessage","Bačva "+keg.code+" nije u statusu Prazan. Trenutačni status: "+(statusNames[keg.status]||keg.status)+".",true);return}
+ if(washCart.some(k=>k.id===keg.id)){message("searchScanMessage",keg.code+" je već na popisu.");$("search").value="";return}
+ washCart.push(keg);renderWashCart();$("search").value="";
+ message("searchScanMessage",keg.code+" dodan na popis za pranje.");
+}
+$("refreshBtn").addEventListener("click",()=>{if($("workMenu").value==="washing")addKegToWashCart($("search").value);else addKegToEmptyCart($("search").value)});
+$("confirmWashCartBtn").addEventListener("click",async()=>{
+ if(!washCart.length)return;
+ const codes=washCart.map(k=>k.code);
+ if(!confirm("Jeste li sigurni da želite potvrditi pranje za "+codes.length+" kegova?\\n\\n"+codes.join(", ")+"\\n\\nStatus će se promijeniti iz Prazan u Opran."))return;
+ $("confirmWashCartBtn").disabled=true;$("clearWashCartBtn").disabled=true;
+ let done=[],failed=[];
+ for(const code of codes){
+  const {error}=await client.rpc("change_keg_status",{p_keg_code:code,p_new_status:"washed"});
+  if(error)failed.push(code+": "+error.message);else done.push(code);
+ }
+ await loadKegs();
+ washCart=washCart.filter(k=>!done.includes(k.code));renderWashCart();
+ $("confirmWashCartBtn").disabled=false;$("clearWashCartBtn").disabled=false;
+ if(failed.length)message("washCartMessage","Uspješno oprano: "+done.length+". Nije uspjelo: "+failed.join("; "),true);
+ else message("washCartMessage","Uspješno je evidentirano pranje za svih "+done.length+" kegova.");
+});
+$("clearWashCartBtn").addEventListener("click",()=>{washCart=[];renderWashCart();message("washCartMessage","Popis za pranje je ispražnjen.")});
 $("confirmEmptyCartBtn").addEventListener("click",async()=>{
  if(!emptyCart.length)return;
  const codes=emptyCart.map(k=>k.code);
@@ -174,7 +208,7 @@ $("searchScanBtn").addEventListener("click",async()=>{
    const code=String(decoded||"").trim(),now=Date.now();
    if(code===lastScannedCode&&now-lastScannedAt<1800)return;
    lastScannedCode=code;lastScannedAt=now;
-   addKegToEmptyCart(code);
+   if($("workMenu").value==="washing")addKegToWashCart(code);else addKegToEmptyCart(code);
    try{await rememberCamera()}catch(e){}
   });
   message("searchScanMessage","Kamera je uključena. Skeniraj QR kodove jedan za drugim.");
@@ -211,13 +245,14 @@ function openWorkMode(){
   $("fillWorkPanel").classList.remove("hidden");
  }else if(mode==="empty"||mode==="washing"){
   $("kegWorkPanel").classList.remove("hidden");
-  $("washScanBtn").classList.toggle("hidden",mode!=="washing");
+  $("emptyCartPanel").classList.toggle("hidden",mode!=="empty"||emptyCart.length===0);
+  $("washCartPanel").classList.toggle("hidden",mode!=="washing"||washCart.length===0);
   if(mode==="empty"){
    $("workTitle").textContent="Istočeni kegovi";
-   $("workDescription").textContent="Popis praznih kegova koji čekaju pranje.";
+   $("workDescription").textContent="Dodaj pune kegove na popis. Status se mijenja tek nakon potvrde istakanja.";
   }else{
    $("workTitle").textContent="Pranje kegova";
-   $("workDescription").textContent="Skeniraj keg nakon završenog pranja. Status će se promijeniti u Opran.";
+   $("workDescription").textContent="Dodaj prazne kegove na popis. Status se mijenja tek nakon potvrde pranja.";
   }
  }else{
   showHome();
@@ -229,31 +264,6 @@ $("workMenu").addEventListener("change",openWorkMode);
 $("workMenu").addEventListener("input",openWorkMode);
 
 function localToday(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
-async function stopEmptyScanner(){if(emptyScanner){try{await emptyScanner.stop();emptyScanner.clear()}catch(e){}emptyScanner=null}}
-async function registerWashedKeg(rawCode){
- const code=String(rawCode||"").trim();
- if(!/^Keg-\d{3,}$/.test(code)){message("statusMessage","QR kod nije valjana oznaka kega.",true);return}
- const keg=kegs.find(k=>k.code===code);
- if(!keg){message("statusMessage","Keg "+code+" nije pronađen u evidenciji.",true);return}
- if(keg.status!=="empty"){message("statusMessage","Keg "+code+" nije u statusu Prazan. Trenutačni status: "+(statusNames[keg.status]||keg.status)+".",true);return}
- message("statusMessage","Evidentiram pranje za "+code+"…");
- const {error}=await client.rpc("change_keg_status",{p_keg_code:code,p_new_status:"washed"});
- if(error){message("statusMessage","Greška pri spremanju pranja: "+error.message,true);return}
- message("statusMessage",code+" je označen kao Opran. Datum i vrijeme zabilježeni su u povijesti statusa.");
- await loadKegs();
-}
-$("washScanBtn").addEventListener("click",async()=>{
- const box=$("emptyScanner");
- if(!box.classList.contains("hidden")){await stopEmptyScanner();box.classList.add("hidden");return}
- if(!window.Html5Qrcode){message("statusMessage","QR skener se nije učitao.",true);return}
- box.classList.remove("hidden");
- try{
-  emptyScanner=new Html5Qrcode("emptyScanner");
-  await emptyScanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{await rememberCamera();
-   await stopEmptyScanner();box.classList.add("hidden");await registerWashedKeg(decoded);
-  });
- }catch(e){await stopEmptyScanner();box.classList.add("hidden");message("statusMessage","Ne mogu pokrenuti kameru. Dopusti pristup kameri i otvori aplikaciju preko HTTPS-a. "+e,true)}
-});
 $("fillDate").value=localToday();
 let fillSaving=false;
 async function saveFillForCode(rawCode){
