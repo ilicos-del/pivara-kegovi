@@ -198,7 +198,35 @@ $("fullKegsSearch").addEventListener("input",renderFullKegs);
 $("refreshFullKegsBtn").addEventListener("click",async()=>{await loadKegs();renderFullKegs()});
 function showHome(){ $("homeView").classList.remove("hidden");$("kegWorkPanel").classList.add("hidden");$("fillWorkPanel").classList.add("hidden");$("fullKegsPanel").classList.add("hidden");$("emptyKegsPanel").classList.add("hidden");$("washedKegsPanel").classList.add("hidden");$("workMenu").value=""; }
 $("backHomeBtn").addEventListener("click",showHome);$("backFillBtn").addEventListener("click",showHome);
-$("workMenu").addEventListener("change",()=>{const mode=$("workMenu").value;if(!mode){showHome();return} $("homeView").classList.add("hidden");const filling=mode==="fill";$("kegWorkPanel").classList.toggle("hidden",filling);$("fillWorkPanel").classList.toggle("hidden",!filling);$("washScanBtn").classList.toggle("hidden",mode!=="washing");if(mode==="empty"){$("workTitle").textContent="Istočeni kegovi";$("workDescription").textContent="Popis praznih kegova koji čekaju pranje.";}else if(mode==="washing"){$("workTitle").textContent="Pranje kegova";$("workDescription").textContent="Skeniraj keg nakon završenog pranja. Status će se promijeniti u Opran.";}renderKegs();});
+function openWorkMode(){
+ const mode=$("workMenu").value;
+ $("homeView").classList.add("hidden");
+ $("kegWorkPanel").classList.add("hidden");
+ $("fillWorkPanel").classList.add("hidden");
+ $("fullKegsPanel").classList.add("hidden");
+ $("emptyKegsPanel").classList.add("hidden");
+ $("washedKegsPanel").classList.add("hidden");
+ if(!mode){showHome();return}
+ if(mode==="fill"){
+  $("fillWorkPanel").classList.remove("hidden");
+ }else if(mode==="empty"||mode==="washing"){
+  $("kegWorkPanel").classList.remove("hidden");
+  $("washScanBtn").classList.toggle("hidden",mode!=="washing");
+  if(mode==="empty"){
+   $("workTitle").textContent="Istočeni kegovi";
+   $("workDescription").textContent="Popis praznih kegova koji čekaju pranje.";
+  }else{
+   $("workTitle").textContent="Pranje kegova";
+   $("workDescription").textContent="Skeniraj keg nakon završenog pranja. Status će se promijeniti u Opran.";
+  }
+ }else{
+  showHome();
+  return;
+ }
+ renderKegs();
+}
+$("workMenu").addEventListener("change",openWorkMode);
+$("workMenu").addEventListener("input",openWorkMode);
 
 function localToday(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 async function stopEmptyScanner(){if(emptyScanner){try{await emptyScanner.stop();emptyScanner.clear()}catch(e){}emptyScanner=null}}
