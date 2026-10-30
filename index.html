@@ -56,7 +56,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <script>
 const $=id=>document.getElementById(id);
 let client=null, scanner=null, emptyScanner=null, searchScanner=null, currentUser=null, profile=null, kegs=[];
-const statusNames={full:"Pun",empty:"Prazan",washed:"Opran",washing:"U pranju"};
+const statusNames={full:"Pun",empty:"Prazan",washed:"Opran",washing:"U pranju",in_preparation:"U pripremi",in_preperation:"U pripremi"};
 function message(id,text,error=false){$(id).textContent=text;$(id).style.color=error?"#a33b32":"#52705b"}
 function configReady(){return window.PIVARA_SUPABASE_URL&&window.PIVARA_SUPABASE_ANON_KEY&&!window.PIVARA_SUPABASE_URL.includes("OVDJE")&&!window.PIVARA_SUPABASE_ANON_KEY.includes("OVDJE")}
 async function init(){
