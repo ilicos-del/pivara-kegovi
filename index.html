@@ -283,7 +283,8 @@ function addKegToFillCart(rawCode){
  if(!/^Keg-[0-9]{3,}$/i.test(code)){message("fillMessage","Unesi valjanu oznaku bačve, npr. Keg-001.",true);return}
  if(fillCartMeta&&(meta.beer!==fillCartMeta.beer||meta.lot!==fillCartMeta.lot||meta.date!==fillCartMeta.date)){message("fillMessage","Jedan popis može sadržavati samo isto pivo, LOT i datum. Isprazni popis prije promjene podataka.",true);return}
  const keg=kegs.find(k=>k.code.toLowerCase()===code.toLowerCase());
- if(keg&&keg.status==="full"){message("fillMessage","Bačva "+keg.code+" već je u statusu Pun.",true);return}
+ if(!keg){message("fillMessage","Bačva "+code+" nije pronađena u evidenciji.",true);return}
+ if(keg.status!=="washed"){message("fillMessage","Bačva "+keg.code+" nije oprana. Punjenje je dopušteno samo za kegove sa statusom Opran.",true);return}
  if(fillCart.some(k=>k.code.toLowerCase()===code.toLowerCase())){message("fillMessage",code+" je već na popisu.");$("kegCode").value="";return}
  if(!fillCartMeta)fillCartMeta=meta;
  fillCart.push(keg||{id:null,code,status:"in_preparation"});
@@ -295,6 +296,11 @@ $("confirmFillCartBtn").addEventListener("click",async()=>{
  if(!fillCart.length||!fillCartMeta||fillSaving)return;
  const codes=fillCart.map(k=>k.code),meta=fillCartMeta;
  if(!confirm("Potvrđuješ punjenje za "+codes.length+" kegova?\\n\\n"+codes.join(", ")+"\\n\\nPivo: "+meta.beer+"\\nLOT: "+meta.lot+"\\nDatum: "+meta.date))return;
+ const {data:latestKegs,error:statusError}=await client.from("kegs").select("code,status").in("code",codes);
+ if(statusError){message("fillCartMessage","Nije moguće provjeriti statuse kegova: "+statusError.message,true);return}
+ const currentByCode=new Map((latestKegs||[]).map(k=>[k.code.toLowerCase(),k.status]));
+ const invalid=codes.filter(code=>currentByCode.get(code.toLowerCase())!=="washed");
+ if(invalid.length){message("fillCartMessage","Punjenje nije potvrđeno. Sljedeći kegovi nisu u statusu Opran ili nisu pronađeni: "+invalid.join(", ")+". Svi kegovi moraju imati status Opran.",true);await loadKegs();return}
  fillSaving=true;$("confirmFillCartBtn").disabled=true;$("clearFillCartBtn").disabled=true;$("fillBtn").disabled=true;$("scanBtn").disabled=true;
  let done=[],failed=[];
  for(const code of codes){
