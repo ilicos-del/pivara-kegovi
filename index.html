@@ -21,7 +21,7 @@ input,select{width:100%;border:1px solid #d6ddd3;border-radius:10px;padding:12px
 button{border:0;border-radius:10px;background:var(--green);color:white;font:inherit;font-weight:700;padding:12px 16px;min-height:44px;cursor:pointer}
 button.secondary{background:#e8eee7;color:var(--green)}button.danger{background:#f8e9e6;color:var(--red)}button:disabled{opacity:.5;cursor:not-allowed}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{min-width:0}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
-.hidden{display:none!important}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}.stat{background:#f1f4ee;border-radius:12px;padding:13px}.stat strong{display:block;font-size:24px;color:var(--green)}.stat span{font-size:12px;color:var(--muted)}
+.hidden{display:none!important}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}.stat{background:#f1f4ee;border-radius:12px;padding:13px}.stat strong{display:block;font-size:24px;color:var(--green)}.stat span{font-size:12px;color:var(--muted)}.adminStat{width:100%;border:0;text-align:left;cursor:pointer;font:inherit;color:inherit}.adminStat:focus-visible{outline:3px solid var(--gold);outline-offset:2px}.adminStat span{display:block}
 table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:12px 9px;border-bottom:1px solid var(--line)}th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .pill{display:inline-block;border-radius:99px;padding:5px 9px;font-size:12px;font-weight:700;background:#e9eee8;color:#36513e}.pill.full{background:#e3efe5;color:#23613a}.pill.empty{background:#f7edda;color:#8a6221}.pill.washing{background:#e7edf4;color:#3c5d7d}
 #scanner{max-width:420px;margin-top:14px}#message{margin-top:12px;font-size:14px;color:var(--muted)}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.toolbar input{max-width:300px}.statusAction{border-top:1px solid var(--line);margin-top:18px;padding-top:18px}.statusAction h2{margin-bottom:14px}
@@ -38,9 +38,10 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </section>
 <section id="appPanel" class="hidden">
 <div id="homeView" class="panel"><h1>Pregled bačvi</h1><p class="sub">Trenutačno stanje svih bačvi u sustavu</p>
-<div class="stats"><div class="stat"><strong id="countAll">0</strong><span>Ukupno</span></div><div class="stat"><strong id="countFull">0</strong><span>Punih</span></div><div class="stat"><strong id="countEmpty">0</strong><span>Praznih</span></div><div class="stat"><strong id="countWash">0</strong><span>Opranih</span></div></div>
+<div class="stats"><div class="stat"><strong id="countAll">0</strong><span>Ukupno</span></div><button type="button" id="fullKegsStat" class="stat adminStat" aria-label="Otvori popis punih bačvi"><strong id="countFull">0</strong><span>Punih · otvori popis</span></button><div class="stat"><strong id="countEmpty">0</strong><span>Praznih</span></div><div class="stat"><strong id="countWash">0</strong><span>Opranih</span></div></div>
 <label for="workMenu">Odaberi radnju</label><select id="workMenu"><option value="" selected>Odaberi radnju</option><option value="empty">Istočeni kegovi</option><option value="washing">Pranje kegova</option><option value="fill">Punjenje kegova</option></select>
 </div>
+<div id="fullKegsPanel" class="panel hidden"><div class="row"><h2>Popis punih bačvi</h2><button class="secondary" id="backFromFullKegsBtn">← Natrag</button></div><p class="sub">Pregled svih punih bačvi, piva, datuma punjenja i LOT brojeva.</p><div class="toolbar"><input id="fullKegsSearch" placeholder="Pretraži bačvu, pivo ili LOT…"><button class="secondary" id="refreshFullKegsBtn">Osvježi</button></div><div style="overflow-x:auto"><table><thead><tr><th>Broj bačve</th><th>Naziv piva</th><th>Datum punjenja</th><th>LOT broj</th></tr></thead><tbody id="fullKegsRows"><tr><td colspan="4">Učitavanje…</td></tr></tbody></table></div></div>
 <div id="kegWorkPanel" class="panel hidden"><div class="row"><h2 id="workTitle">Istočeni kegovi</h2><button class="secondary" id="backHomeBtn">← Natrag</button></div><p class="sub" id="workDescription">Popis bačvi koje su ispražnjene i čekaju pranje.</p><div class="toolbar"><input id="search" placeholder="Pretraži bačvu, pivo ili LOT…"><button class="secondary" id="refreshBtn">Osvježi</button></div>
 <div class="actions"><button id="emptyScanBtn">📷 Skeniraj QR kod</button><button id="washScanBtn" class="hidden">📷 Skeniraj oprani keg</button><button id="finishEmptyScanBtn" class="secondary hidden">Gotovo skeniranje</button></div><div id="emptyScanner" class="hidden"></div><div id="statusMessage" role="status"></div><section id="emptiedSessionPanel" class="hidden"><h2>Odskenirani kegovi</h2><p class="sub" id="emptiedSessionCount"></p><div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th>Datum istakanja</th></tr></thead><tbody id="emptiedSessionRows"></tbody></table></div><div class="actions"><button id="finishEmptiedKegsBtn">Završi s istočenim kegovima</button></div></section>
 <div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th>Pivo</th><th>LOT</th><th>Punjenje</th></tr></thead><tbody id="kegRows"><tr><td colspan="5">Učitavanje…</td></tr></tbody></table></div>
@@ -78,6 +79,19 @@ async function loadKegs(){
  kegs=data||[];renderKegs();
 }
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function renderFullKegs(){
+ const q=$("fullKegsSearch").value.toLowerCase();
+ const rows=kegs.filter(k=>k.status==="full"&&[k.code,k.current_beer,k.current_lot,k.transferred_on].some(v=>String(v||"").toLowerCase().includes(q)));
+ $("fullKegsRows").innerHTML=rows.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td>'+escapeHtml(k.current_beer||"—")+'</td><td>'+escapeHtml(k.transferred_on||"—")+'</td><td>'+escapeHtml(k.current_lot||"—")+'</td></tr>').join("")||'<tr><td colspan="4">Nema punih bačvi.</td></tr>';
+}
+function openFullKegs(){
+ if(profile?.role!=="admin")return;
+ $("homeView").classList.add("hidden");$("kegWorkPanel").classList.add("hidden");$("fillWorkPanel").classList.add("hidden");
+ $("fullKegsPanel").classList.remove("hidden");renderFullKegs();
+}
+function closeFullKegs(){
+ $("fullKegsPanel").classList.add("hidden");$("homeView").classList.remove("hidden");
+}
 function renderKegs(){
  $("countAll").textContent=kegs.length;$("countFull").textContent=kegs.filter(k=>k.status==="full").length;$("countEmpty").textContent=kegs.filter(k=>k.status==="empty").length;$("countWash").textContent=kegs.filter(k=>k.status==="washed").length;
  const q=$("search").value.toLowerCase(), f="empty";
@@ -87,7 +101,11 @@ function renderKegs(){
 $("loginBtn").addEventListener("click",async()=>{message("loginMessage","Prijavljujem…");const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error){message("loginMessage",error.message,true);return}await showApp(data.user)});
 $("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();location.reload()});
 $("refreshBtn").addEventListener("click",loadKegs);$("search").addEventListener("input",renderKegs);
-function showHome(){ $("homeView").classList.remove("hidden");$("kegWorkPanel").classList.add("hidden");$("fillWorkPanel").classList.add("hidden");$("workMenu").value=""; }
+$("fullKegsStat").addEventListener("click",openFullKegs);
+$("backFromFullKegsBtn").addEventListener("click",closeFullKegs);
+$("fullKegsSearch").addEventListener("input",renderFullKegs);
+$("refreshFullKegsBtn").addEventListener("click",async()=>{await loadKegs();renderFullKegs()});
+function showHome(){ $("homeView").classList.remove("hidden");$("kegWorkPanel").classList.add("hidden");$("fillWorkPanel").classList.add("hidden");$("fullKegsPanel").classList.add("hidden");$("workMenu").value=""; }
 $("backHomeBtn").addEventListener("click",showHome);$("backFillBtn").addEventListener("click",showHome);
 $("workMenu").addEventListener("change",()=>{const mode=$("workMenu").value;if(!mode){showHome();return} $("homeView").classList.add("hidden");const filling=mode==="fill";$("kegWorkPanel").classList.toggle("hidden",filling);$("fillWorkPanel").classList.toggle("hidden",!filling);$("emptyScanBtn").classList.toggle("hidden",mode!=="empty");$("washScanBtn").classList.toggle("hidden",mode!=="washing");if(mode==="empty"){$("workTitle").textContent="Istočeni kegovi";$("workDescription").textContent="Popis praznih kegova koji čekaju pranje.";}else if(mode==="washing"){$("workTitle").textContent="Pranje kegova";$("workDescription").textContent="Skeniraj keg nakon završenog pranja. Status će se promijeniti u Opran.";}renderKegs();});
 
