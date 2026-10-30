@@ -144,7 +144,20 @@ function renderKegs(){
  const rows=kegs.filter(k=>k.status===f&&[k.code,k.current_beer,k.current_lot].some(v=>String(v||"").toLowerCase().includes(q)));
  $("kegRows").innerHTML=rows.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td><span class="pill '+escapeHtml(k.status)+'">'+escapeHtml(statusNames[k.status]||k.status)+'</span></td><td>'+escapeHtml(k.current_beer||"—")+'</td><td>'+escapeHtml(k.current_lot||"—")+'</td><td>'+escapeHtml(k.transferred_on||"—")+'</td></tr>').join("")||'<tr><td colspan="5">Nema rezultata.</td></tr>';
 }
-$("loginBtn").addEventListener("click",async()=>{message("loginMessage","Prijavljujem…");const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error){message("loginMessage",error.message,true);return}await showApp(data.user)});
+$("loginBtn").addEventListener("click",async()=>{
+ const btn=$("loginBtn");btn.disabled=true;message("loginMessage","Prijavljujem…");
+ try{
+  if(!window.supabase||!window.supabase.createClient)throw new Error("Supabase biblioteka nije učitana. Osvježi stranicu.");
+  if(!configReady())throw new Error("Nedostaje Supabase konfiguracija.");
+  if(!client)client=window.supabase.createClient(window.PIVARA_SUPABASE_URL,window.PIVARA_SUPABASE_ANON_KEY);
+  const email=$("email").value.trim(),password=$("password").value;
+  if(!email||!password)throw new Error("Upiši e-mail adresu i lozinku.");
+  const {data,error}=await client.auth.signInWithPassword({email,password});
+  if(error)throw error;
+  await showApp(data.user);
+ }catch(e){message("loginMessage","Greška pri prijavi: "+(e?.message||String(e)),true)}
+ finally{btn.disabled=false}
+});
 $("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();location.reload()});
 let emptyCart=[];
 function renderEmptyCart(){
