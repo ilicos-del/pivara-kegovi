@@ -320,7 +320,7 @@ let washCart=[];
 function renderWashCart(){
  $("washCartPanel").classList.toggle("hidden",washCart.length===0);
  $("washCartCount").textContent=washCart.length+" kegova";
- $("washCartRows").innerHTML=washCart.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td><span class="pill empty">Prazan</span></td><td><button type="button" class="danger removeWashCartKeg" data-code="'+escapeHtml(k.code)+'">Ukloni</button></td></tr>').join("");
+ $("washCartRows").innerHTML=washCart.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td><span class="pill '+escapeHtml(k.status)+'">'+escapeHtml(statusNames[k.status]||k.status)+'</span></td><td><button type="button" class="danger removeWashCartKeg" data-code="'+escapeHtml(k.code)+'">Ukloni</button></td></tr>').join("");
  $("washCartRows").querySelectorAll(".removeWashCartKeg").forEach(btn=>btn.addEventListener("click",()=>{washCart=washCart.filter(k=>k.code!==btn.dataset.code);renderWashCart()}));
 }
 function addKegToWashCart(rawCode){
@@ -337,7 +337,8 @@ $("refreshBtn").addEventListener("click",()=>{if($("workMenu").value==="washing"
 $("confirmWashCartBtn").addEventListener("click",async()=>{
  if(!washCart.length)return;
  const codes=washCart.map(k=>k.code);
- if(!confirm("Jeste li sigurni da želite potvrditi pranje za "+codes.length+" kegova?\\n\\n"+codes.join(", ")+"\\n\\nStatus će se promijeniti iz Prazan u Opran."))return;
+ const sourceStatuses=[...new Set(washCart.map(k=>statusNames[k.status]||k.status))].join(", ");
+ if(!confirm("Jeste li sigurni da želite potvrditi pranje za "+codes.length+" kegova?\\n\\n"+codes.join(", ")+"\\n\\nTrenutačni statusi: "+sourceStatuses+".\\nNovi status: Opran."))return;
  $("confirmWashCartBtn").disabled=true;$("clearWashCartBtn").disabled=true;
  let done=[],failed=[];
  for(const code of codes){
@@ -517,7 +518,7 @@ function openWorkMode(){
    $("workDescription").textContent="Dodaj pune kegove na popis. Status se mijenja tek nakon potvrde istakanja.";
   }else if(mode==="washing"){
    $("workTitle").textContent="Pranje kegova";
-   $("workDescription").textContent="Dodaj prazne kegove na popis. Status se mijenja tek nakon potvrde pranja.";
+   $("workDescription").textContent="Dodaj prazne kegove ili kegove u pripremi na popis. Status se mijenja u Opran tek nakon potvrde pranja.";
   }else if(mode==="shipping"){
    $("workTitle").textContent="Otprema kegova";
    $("workDescription").textContent="Dodaj pune kegove na popis. Status se mijenja u Otpremljen tek nakon potvrde otpreme.";
