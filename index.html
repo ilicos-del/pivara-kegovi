@@ -39,6 +39,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div class="stats"><div class="stat"><strong id="countAll">0</strong><span>Ukupno</span></div><div class="stat"><strong id="countFull">0</strong><span>Punih</span></div><div class="stat"><strong id="countEmpty">0</strong><span>Praznih</span></div><div class="stat"><strong id="countWash">0</strong><span>U pranju</span></div></div>
 <div class="panel"><label for="workMenu">Odaberi radnju</label><select id="workMenu"><option value="empty">Istočeni kegovi</option><option value="washing">Pranje kegova</option><option value="fill">Punjenje kegova</option></select></div>
 <div id="kegWorkPanel" class="panel"><h2 id="workTitle">Istočeni kegovi</h2><p class="sub" id="workDescription">Popis bačvi koje su ispražnjene i čekaju pranje.</p><div class="toolbar"><input id="search" placeholder="Pretraži bačvu, pivo ili LOT…"><button class="secondary" id="refreshBtn">Osvježi</button></div>
+<div class="actions"><button id="emptyScanBtn">📷 Skeniraj istočeni keg</button></div><div id="emptyScanner" class="hidden"></div>
 <div style="overflow-x:auto"><table><thead><tr><th>Bačva</th><th>Status</th><th>Pivo</th><th>LOT</th><th>Punjenje</th></tr></thead><tbody id="kegRows"><tr><td colspan="5">Učitavanje…</td></tr></tbody></table></div>
 <div class="statusAction"><h2 id="statusActionTitle">Pošalji na pranje</h2><div class="grid"><div class="field"><label for="statusKeg">Oznaka bačve</label><input id="statusKeg" placeholder="Keg-001"></div><div class="field"><label for="newStatus">Novi status</label><select id="newStatus"><option value="washing">U pranju</option><option value="in_preparation">U pripremi</option></select></div></div><div class="actions"><button id="statusBtn">Spremi status</button></div><div id="statusMessage" role="status"></div></div></div>
 <div id="fillWorkPanel" class="panel hidden"><h2>Punjenje kegova</h2><p class="sub">Unesi podatke piva i skeniraj QR kod bačve.</p>
@@ -50,7 +51,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <script src="./config.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-let client=null, scanner=null, currentUser=null, profile=null, kegs=[];
+let client=null, scanner=null, emptyScanner=null, currentUser=null, profile=null, kegs=[];
 const statusNames={in_preparation:"U pripremi",full:"Pun",empty:"Prazan",washing:"U pranju"};
 function message(id,text,error=false){$(id).textContent=text;$(id).style.color=error?"#a33b32":"#52705b"}
 function configReady(){return window.PIVARA_SUPABASE_URL&&window.PIVARA_SUPABASE_ANON_KEY&&!window.PIVARA_SUPABASE_URL.includes("OVDJE")&&!window.PIVARA_SUPABASE_ANON_KEY.includes("OVDJE")}
@@ -84,6 +85,37 @@ $("loginBtn").addEventListener("click",async()=>{message("loginMessage","Prijavl
 $("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();location.reload()});
 $("refreshBtn").addEventListener("click",loadKegs);$("search").addEventListener("input",renderKegs);
 $("workMenu").addEventListener("change",()=>{const mode=$("workMenu").value;const filling=mode==="fill";$("kegWorkPanel").classList.toggle("hidden",filling);$("fillWorkPanel").classList.toggle("hidden",!filling);if(mode==="empty"){$("workTitle").textContent="Istočeni kegovi";$("workDescription").textContent="Popis bačvi koje su ispražnjene i čekaju pranje.";$("statusActionTitle").textContent="Pošalji keg na pranje";$("newStatus").innerHTML='<option value="washing">U pranju</option>';}else if(mode==="washing"){$("workTitle").textContent="Pranje kegova";$("workDescription").textContent="Popis bačvi koje su trenutačno na pranju.";$("statusActionTitle").textContent="Završi pranje";$("newStatus").innerHTML='<option value="in_preparation">U pripremi</option>';}renderKegs();});
+
+function localToday(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+async function stopEmptyScanner(){if(emptyScanner){try{await emptyScanner.stop();emptyScanner.clear()}catch(e){}emptyScanner=null}}
+async function registerEmptiedKeg(rawCode){
+ const code=String(rawCode||"").trim();
+ if(!/^Keg-\\d{3,}$/.test(code)){message("statusMessage","QR kod nije valjana oznaka kega.",true);return}
+ const keg=kegs.find(k=>k.code===code);
+ if(!keg){message("statusMessage","Keg "+code+" nije pronađen u evidenciji.",true);return}
+ if(keg.status!=="full"){message("statusMessage","Keg "+code+" nije u statusu Pun. Trenutačni status: "+(statusNames[keg.status]||keg.status)+".",true);return}
+ const today=localToday();
+ message("statusMessage","Evidentiram istakanje za "+code+"…");
+ const {error:statusError}=await client.rpc("change_keg_status",{p_keg_code:code,p_new_status:"empty"});
+ if(statusError){message("statusMessage","Greška pri promjeni statusa: "+statusError.message,true);return}
+ const {error:dateError}=await client.from("kegs").update({transferred_on:today}).eq("code",code);
+ if(dateError){message("statusMessage","Status je promijenjen u Prazan, ali datum nije spremljen: "+dateError.message,true);await loadKegs();return}
+ message("statusMessage",code+" je evidentiran kao Prazan. Datum istakanja: "+today+".");
+ await loadKegs();
+}
+$("emptyScanBtn").addEventListener("click",async()=>{
+ const box=$("emptyScanner");
+ if(!box.classList.contains("hidden")){await stopEmptyScanner();box.classList.add("hidden");return}
+ if(!window.Html5Qrcode){message("statusMessage","QR skener se nije učitao.",true);return}
+ box.classList.remove("hidden");
+ try{
+  emptyScanner=new Html5Qrcode("emptyScanner");
+  await emptyScanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{
+   await stopEmptyScanner();box.classList.add("hidden");await registerEmptiedKeg(decoded);
+  });
+ }catch(e){await stopEmptyScanner();box.classList.add("hidden");message("statusMessage","Ne mogu pokrenuti kameru. Dopusti pristup kameri i otvori aplikaciju preko HTTPS-a. "+e,true)}
+});
+
 $("fillDate").value=new Date().toISOString().slice(0,10);
 $("fillBtn").addEventListener("click",async()=>{
  const beer=$("beer").value.trim(),lot=$("lot").value.trim(),date=$("fillDate").value,code=$("kegCode").value.trim();
