@@ -23,7 +23,7 @@ button.secondary{background:#e8eee7;color:var(--green)}button.danger{background:
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{min-width:0}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
 .hidden{display:none!important}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}.stat{background:#f1f4ee;border-radius:12px;padding:13px}.stat strong{display:block;font-size:24px;color:var(--green)}.stat span{font-size:12px;color:var(--muted)}.adminStat{width:100%;border:0;text-align:left;cursor:pointer;font:inherit;color:inherit}.adminStat:focus-visible{outline:3px solid var(--gold);outline-offset:2px}.adminStat span{display:block}
 table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:12px 9px;border-bottom:1px solid var(--line)}th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.pill{display:inline-block;border-radius:99px;padding:5px 9px;font-size:12px;font-weight:700;background:#e9eee8;color:#36513e}.pill.full{background:#e3efe5;color:#23613a}.pill.empty{background:#f7edda;color:#8a6221}.pill.washing{background:#e7edf4;color:#3c5d7d}
+.pill{display:inline-block;border-radius:99px;padding:5px 9px;font-size:12px;font-weight:700;background:#e9eee8;color:#36513e}.pill.full{background:#e3efe5;color:#23613a}.pill.empty{background:#f7edda;color:#8a6221}.pill.washing{background:#e7edf4;color:#3c5d7d}.pill.shipped{background:#e8e8ee;color:#55556b}
 #scanner{max-width:420px;margin-top:14px}#message{margin-top:12px;font-size:14px;color:var(--muted)}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.toolbar input{max-width:300px}.statusAction{border-top:1px solid var(--line);margin-top:18px;padding-top:18px}.statusAction h2{margin-bottom:14px}
 @media(max-width:650px){header{padding:18px}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}main{margin-top:16px}.panel{padding:16px}table{font-size:12px}th,td{padding:9px 5px}}
 </style>
@@ -285,7 +285,7 @@ function openWorkMode(){
  if(!mode){showHome();return}
  if(mode==="fill"){
   $("fillWorkPanel").classList.remove("hidden");
- }else if(mode==="empty"||mode==="washing"){
+ }else if(mode==="empty"||mode==="washing"||mode==="shipping"){
   $("kegWorkPanel").classList.remove("hidden");
   $("emptyCartPanel").classList.toggle("hidden",mode!=="empty"||emptyCart.length===0);
   $("washCartPanel").classList.toggle("hidden",mode!=="washing"||washCart.length===0);
