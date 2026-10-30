@@ -77,7 +77,7 @@ async function loadKegs(){
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function renderKegs(){
  $("countAll").textContent=kegs.length;$("countFull").textContent=kegs.filter(k=>k.status==="full").length;$("countEmpty").textContent=kegs.filter(k=>k.status==="empty").length;$("countWash").textContent=kegs.filter(k=>k.status==="washed").length;
- const q=$("search").value.toLowerCase(), f=$("workMenu").value==="empty"?"empty":"washing";
+ const q=$("search").value.toLowerCase(), f="empty";
  const rows=kegs.filter(k=>k.status===f&&[k.code,k.current_beer,k.current_lot].some(v=>String(v||"").toLowerCase().includes(q)));
  $("kegRows").innerHTML=rows.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td><span class="pill '+escapeHtml(k.status)+'">'+escapeHtml(statusNames[k.status]||k.status)+'</span></td><td>'+escapeHtml(k.current_beer||"—")+'</td><td>'+escapeHtml(k.current_lot||"—")+'</td><td>'+escapeHtml(k.transferred_on||"—")+'</td></tr>').join("")||'<tr><td colspan="5">Nema rezultata.</td></tr>';
 }
