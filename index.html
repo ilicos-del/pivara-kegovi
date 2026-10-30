@@ -114,7 +114,7 @@ async function loadShippedCustomers(){
  shippedCustomerByKeg={};
  (data||[]).forEach(s=>{if(!shippedCustomerByKeg[s.keg_id])shippedCustomerByKeg[s.keg_id]=s.customer||null});
 }
-function openShippedKegs(){
+async function openShippedKegs(){
  if(profile?.role!=="admin")return;
  ["homeView","kegWorkPanel","fillWorkPanel","fullKegsPanel","emptyKegsPanel","washedKegsPanel"].forEach(id=>$(id).classList.add("hidden"));
  $("shippedKegsPanel").classList.remove("hidden");await loadShippedCustomers();renderShippedKegs();
