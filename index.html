@@ -117,7 +117,24 @@ function renderKegs(){
 }
 $("loginBtn").addEventListener("click",async()=>{message("loginMessage","Prijavljujem…");const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error){message("loginMessage",error.message,true);return}await showApp(data.user)});
 $("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();location.reload()});
-$("refreshBtn").addEventListener("click",loadKegs);$("search").addEventListener("input",renderKegs);
+$("refreshBtn").addEventListener("click",async()=>{
+ const code=$("search").value.trim();
+ if(!code){message("searchScanMessage","Prvo upiši oznaku bačve ili je očitaj QR kodom.",true);return}
+ if(!/^Keg-[0-9]{3,}$/.test(code)){message("searchScanMessage","Unesi valjanu oznaku bačve, npr. Keg-001.",true);return}
+ const keg=kegs.find(k=>k.code.toLowerCase()===code.toLowerCase());
+ if(!keg){message("searchScanMessage","Bačva "+code+" nije pronađena u evidenciji.",true);return}
+ if(keg.status!=="full"){message("searchScanMessage","Bačva "+keg.code+" nije u statusu Pun. Trenutačni status: "+(statusNames[keg.status]||keg.status)+".",true);return}
+ $("refreshBtn").disabled=true;
+ message("searchScanMessage","Dodajem "+keg.code+" na popis istočenih kegova…");
+ const {error}=await client.rpc("change_keg_status",{p_keg_code:keg.code,p_new_status:"empty"});
+ $("refreshBtn").disabled=false;
+ if(error){message("searchScanMessage","Greška pri evidentiranju istakanja: "+error.message,true);return}
+ await loadKegs();
+ $("search").value=keg.code;
+ renderKegs();
+ message("searchScanMessage",keg.code+" je dodan na popis istočenih kegova. Status je promijenjen iz Pun u Istočen.");
+});
+$("search").addEventListener("input",renderKegs);
 async function stopSearchScanner(){
  if(searchScanner){try{await searchScanner.stop();searchScanner.clear()}catch(e){}searchScanner=null}
 }
