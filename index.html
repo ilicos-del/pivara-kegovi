@@ -783,6 +783,22 @@ function addKegToFillCart(rawCode){
  renderFillCart();$("kegCode").value="";
  message("fillMessage",code+" dodan na popis za punjenje. Još nije spremljen u evidenciju.");
 }
+// Na mobitelima zadrži polje oznake bačve u vidljivom dijelu ekrana
+$("kegCode").addEventListener("focus",()=>{
+ const field=$("kegCode");
+ const keepFieldVisible=()=>{
+  if(document.activeElement!==field)return;
+  const rect=field.getBoundingClientRect();
+  const visibleHeight=window.visualViewport?window.visualViewport.height:window.innerHeight;
+  const topLimit=12,bottomLimit=visibleHeight-rect.height-16;
+  if(rect.top<topLimit||rect.bottom>visibleHeight-16){
+   field.scrollIntoView({behavior:"smooth",block:"center",inline:"nearest"});
+  }
+ };
+ requestAnimationFrame(keepFieldVisible);
+ setTimeout(keepFieldVisible,300);
+ setTimeout(keepFieldVisible,650);
+});
 $("fillBtn").addEventListener("click",()=>addKegToFillCart($("kegCode").value));
 $("confirmFillCartBtn").addEventListener("click",async()=>{
  if(!fillCart.length||!fillCartMeta||fillSaving)return;
