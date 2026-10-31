@@ -489,7 +489,7 @@ $("clearShippingCartBtn").addEventListener("click",()=>{shippingCart=[];renderSh
 $("confirmReturnCartBtn").addEventListener("click",async()=>{
  if(!returnCart.length)return;
  const codes=returnCart.map(k=>k.code);
- if(!confirm("Potvrđuješ povrat od kupca za "+codes.length+" kegova?\\n\\n"+codes.join(", ")+"\\n\\nStatus će se promijeniti iz Otpremljen u Prazan."))return;
+ if(!confirm("Potvrđuješ povrat od kupca za "+codes.length+" kegova?\n\n"+codes.join(", ")+"\n\nStatus će se promijeniti iz Otpremljen u Prazan."))return;
  $("confirmReturnCartBtn").disabled=true;$("clearReturnCartBtn").disabled=true;
  let done=[],failed=[];
  for(const code of codes){
