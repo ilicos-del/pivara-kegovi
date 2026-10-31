@@ -765,7 +765,8 @@ function renderFillCart(){
  $("fillCartPanel").classList.toggle("hidden",fillCart.length===0);
  $("fillCartCount").textContent=fillCart.length+" kegova";
  $("fillCartDetails").textContent=fillCartMeta?"Pivo: "+fillCartMeta.beer+" · LOT: "+fillCartMeta.lot+" · Datum: "+fillCartMeta.date:"";
- $("fillCartRows").innerHTML=fillCart.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td><span class="pill '+escapeHtml(k.status)+'">'+escapeHtml(statusNames[k.status]||k.status)+'</span></td><td><button type="button" class="danger removeFillCartKeg" data-code="'+escapeHtml(k.code)+'">Ukloni</button></td></tr>').join("");
+ $("fillCartRows").innerHTML=fillCart.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td><label class="sub" style="display:flex;align-items:center;gap:6px"><input class="fillVolumeInput" data-code="'+escapeHtml(k.code)+'" type="number" min="0.1" max="17" step="0.1" value="'+Number(k.volume_liters??17).toFixed(1)+'" style="width:82px;padding:8px"> L</label></td><td><button type="button" class="danger removeFillCartKeg" data-code="'+escapeHtml(k.code)+'">Ukloni</button></td></tr>').join("");
+ $("fillCartRows").querySelectorAll(".fillVolumeInput").forEach(input=>input.addEventListener("change",()=>{const keg=fillCart.find(k=>k.code===input.dataset.code);const value=Number(input.value);if(!keg)return;if(!Number.isFinite(value)||value<=0||value>17){input.value=Number(keg.volume_liters??17).toFixed(1);message("fillCartMessage","Količina mora biti veća od 0 i najviše 17 L.",true);return}keg.volume_liters=value;input.value=value.toFixed(1)}));
  $("fillCartRows").querySelectorAll(".removeFillCartKeg").forEach(btn=>btn.addEventListener("click",()=>{fillCart=fillCart.filter(k=>k.code!==btn.dataset.code);if(!fillCart.length)fillCartMeta=null;renderFillCart()}));
 }
 function addKegToFillCart(rawCode){
@@ -778,7 +779,7 @@ function addKegToFillCart(rawCode){
  if(keg.status!=="washed"){message("fillMessage","Bačva "+keg.code+" nije oprana. Punjenje je dopušteno samo za kegove sa statusom Opran.",true);return}
  if(fillCart.some(k=>k.code.toLowerCase()===code.toLowerCase())){message("fillMessage",code+" je već na popisu.");$("kegCode").value="";return}
  if(!fillCartMeta)fillCartMeta=meta;
- fillCart.push(keg||{id:null,code,status:"in_preparation"});
+ fillCart.push({...keg,volume_liters:17});
  renderFillCart();$("kegCode").value="";
  message("fillMessage",code+" dodan na popis za punjenje. Još nije spremljen u evidenciju.");
 }
@@ -786,7 +787,7 @@ $("fillBtn").addEventListener("click",()=>addKegToFillCart($("kegCode").value));
 $("confirmFillCartBtn").addEventListener("click",async()=>{
  if(!fillCart.length||!fillCartMeta||fillSaving)return;
  const codes=fillCart.map(k=>k.code),meta=fillCartMeta;
- if(!confirm("Potvrđuješ punjenje za "+codes.length+" kegova?\n\n"+codes.join(", ")+"\n\nPivo: "+meta.beer+"\nLOT: "+meta.lot+"\nDatum: "+meta.date))return;
+ if(!confirm("Potvrđuješ punjenje za "+codes.length+" kegova?\n\n"+fillCart.map(k=>k.code+" – "+Number(k.volume_liters??17).toFixed(1)+" L").join("\n")+"\n\nPivo: "+meta.beer+"\nLOT: "+meta.lot+"\nDatum: "+meta.date))return;
  const {data:latestKegs,error:statusError}=await client.from("kegs").select("code,status").in("code",codes);
  if(statusError){message("fillCartMessage","Nije moguće provjeriti statuse kegova: "+statusError.message,true);return}
  const currentByCode=new Map((latestKegs||[]).map(k=>[k.code.toLowerCase(),k.status]));
@@ -795,7 +796,7 @@ $("confirmFillCartBtn").addEventListener("click",async()=>{
  fillSaving=true;$("confirmFillCartBtn").disabled=true;$("clearFillCartBtn").disabled=true;$("fillBtn").disabled=true;$("scanBtn").disabled=true;
  let done=[],failed=[];
  for(const code of codes){
-  const {error}=await client.rpc("register_keg_fill",{p_keg_code:code,p_beer_name:meta.beer,p_lot_number:meta.lot,p_transfer_date:meta.date});
+  const {error}=await client.rpc("register_keg_fill",{p_keg_code:code,p_beer_name:meta.beer,p_lot_number:meta.lot,p_transfer_date:meta.date,p_volume_liters:Number(fillCart.find(k=>k.code===code)?.volume_liters??17)});
   if(error)failed.push(code+": "+error.message);else done.push(code);
  }
  await loadKegs();
