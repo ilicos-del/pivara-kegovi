@@ -442,7 +442,7 @@ $("confirmWashCartBtn").addEventListener("click",async()=>{
  if(!washCart.length)return;
  const codes=washCart.map(k=>k.code);
  const sourceStatuses=[...new Set(washCart.map(k=>statusNames[k.status]||k.status))].join(", ");
- if(!confirm("Jeste li sigurni da želite potvrditi pranje za "+codes.length+" kegova?\\n\\n"+codes.join(", ")+"\\n\\nTrenutačni statusi: "+sourceStatuses+".\\nNovi status: Opran."))return;
+ if(!confirm("Jeste li sigurni da želite potvrditi pranje za "+codes.length+" kegova?\n\n"+codes.join(", ")+"\n\nTrenutačni statusi: "+sourceStatuses+".\nNovi status: Opran."))return;
  // Zaustavi kameru nakon potvrde pranja.
  await stopSearchScanner();
  $("searchScanner").classList.add("hidden");
