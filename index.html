@@ -506,7 +506,7 @@ $("clearReturnCartBtn").addEventListener("click",()=>{returnCart=[];renderReturn
 $("confirmEmptyCartBtn").addEventListener("click",async()=>{
  if(!emptyCart.length)return;
  const codes=emptyCart.map(k=>k.code);
- if(!confirm("Jeste li sigurni da želite promijeniti status za svih "+codes.length+" odabranih kegova?\\n\\n"+codes.join(", ")+"\\n\\nStatus će se promijeniti iz Pun u Istočen."))return;
+ if(!confirm("Jeste li sigurni da želite promijeniti status za svih "+codes.length+" odabranih kegova?\n\n"+codes.join(", ")+"\n\nStatus će se promijeniti iz Pun u Istočen."))return;
  $("confirmEmptyCartBtn").disabled=true;$("clearEmptyCartBtn").disabled=true;
  let done=[],failed=[];
  for(const code of codes){
