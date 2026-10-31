@@ -435,6 +435,10 @@ $("confirmWashCartBtn").addEventListener("click",async()=>{
  const codes=washCart.map(k=>k.code);
  const sourceStatuses=[...new Set(washCart.map(k=>statusNames[k.status]||k.status))].join(", ");
  if(!confirm("Jeste li sigurni da želite potvrditi pranje za "+codes.length+" kegova?\\n\\n"+codes.join(", ")+"\\n\\nTrenutačni statusi: "+sourceStatuses+".\\nNovi status: Opran."))return;
+ // Zaustavi kameru nakon potvrde pranja.
+ await stopSearchScanner();
+ $("searchScanner").classList.add("hidden");
+ $("searchScanBtn").textContent="📷 Skeniraj QR kod";
  $("confirmWashCartBtn").disabled=true;$("clearWashCartBtn").disabled=true;
  let done=[],failed=[];
  for(const code of codes){
