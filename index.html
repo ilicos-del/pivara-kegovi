@@ -349,8 +349,22 @@ async function printDeliveryNote(){
   button.disabled=true;button.textContent="Izrađujem PDF…";
   const element=$("deliveryNotePreviewContent").querySelector(".deliveryNotePaper");
   if(!element)throw new Error("Sadržaj otpremnice nije pronađen.");
-  const options={margin:0,filename:fileName,image:{type:"jpeg",quality:0.98},html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:element.scrollWidth},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["css","legacy"]}};
-  const pdfBlob=await html2pdf().set(options).from(element).outputPdf("blob");
+  // Pripremi kopiju točno A4 dimenzija i proporcionalno je smanji ako sadržaj prelazi jednu stranicu.
+  const wrapper=document.createElement("div");
+  wrapper.style.cssText="position:fixed;left:-10000px;top:0;width:210mm;height:297mm;overflow:hidden;background:#fff;z-index:-1";
+  const clone=element.cloneNode(true);
+  clone.style.cssText+=";box-sizing:border-box;width:210mm;max-width:none;min-height:0;margin:0;padding:10mm;border:0;box-shadow:none;transform-origin:top left";
+  wrapper.appendChild(clone);document.body.appendChild(wrapper);
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  const naturalWidth=clone.scrollWidth;
+  const naturalHeight=clone.scrollHeight;
+  const pageWidth=wrapper.clientWidth;
+  const pageHeight=wrapper.clientHeight;
+  const fitScale=Math.min(1,pageWidth/naturalWidth,pageHeight/naturalHeight);
+  clone.style.transform="scale("+fitScale+")";
+  const options={margin:0,filename:fileName,image:{type:"jpeg",quality:0.98},html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",width:pageWidth,height:pageHeight,windowWidth:pageWidth,windowHeight:pageHeight},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:[]}};
+  let pdfBlob;
+  try{pdfBlob=await html2pdf().set(options).from(wrapper).outputPdf("blob")}finally{wrapper.remove()}
   const pdfFile=new File([pdfBlob],fileName,{type:"application/pdf"});
   if(navigator.share&&navigator.canShare&&navigator.canShare({files:[pdfFile]})){
    await navigator.share({title:noteNumber,text:"Otpremnica Pivara",files:[pdfFile]});
