@@ -677,7 +677,7 @@ $("fillBtn").addEventListener("click",()=>addKegToFillCart($("kegCode").value));
 $("confirmFillCartBtn").addEventListener("click",async()=>{
  if(!fillCart.length||!fillCartMeta||fillSaving)return;
  const codes=fillCart.map(k=>k.code),meta=fillCartMeta;
- if(!confirm("Potvrđuješ punjenje za "+codes.length+" kegova?\\n\\n"+codes.join(", ")+"\\n\\nPivo: "+meta.beer+"\\nLOT: "+meta.lot+"\\nDatum: "+meta.date))return;
+ if(!confirm("Potvrđuješ punjenje za "+codes.length+" kegova?\n\n"+codes.join(", ")+"\n\nPivo: "+meta.beer+"\nLOT: "+meta.lot+"\nDatum: "+meta.date))return;
  const {data:latestKegs,error:statusError}=await client.from("kegs").select("code,status").in("code",codes);
  if(statusError){message("fillCartMessage","Nije moguće provjeriti statuse kegova: "+statusError.message,true);return}
  const currentByCode=new Map((latestKegs||[]).map(k=>[k.code.toLowerCase(),k.status]));
