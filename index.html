@@ -305,7 +305,6 @@ function addKegToEmptyCart(rawCode){
  const keg=kegs.find(k=>k.code.toLowerCase()===code.toLowerCase());
  if(!keg){message("searchScanMessage","Bačva "+code+" nije pronađena u evidenciji.",true);return}
  if(keg.status!=="full"){scanRejectedByStatus=true;message("searchScanMessage","Bačva "+keg.code+" nije u statusu Pun. Trenutačni status: "+(statusNames[keg.status]||keg.status)+".",true);return}
- if(String(keg.note||"").trim()){scanRejectedByStatus=true;message("searchScanMessage","Keg "+keg.code+" ima upisanu napomenu: "+keg.note+". Prije istakanja potrebno je otkloniti kvar.",true);return}
  if(emptyCart.some(k=>k.id===keg.id)){message("searchScanMessage",keg.code+" je već na popisu.");$("search").value="";return}
  emptyCart.push(keg);renderEmptyCart();$("search").value="";renderSearchScanOverlay();
  message("searchScanMessage",keg.code+" dodan na popis. Možeš dodati sljedeći keg.");
@@ -699,11 +698,11 @@ $("confirmEmptyCartBtn").addEventListener("click",async()=>{
  const latestByCode=new Map((latest||[]).map(k=>[k.code.toLowerCase(),k]));
  const invalid=codes.filter(code=>latestByCode.get(code.toLowerCase())?.status!=="full");
  if(invalid.length){message("emptyCartMessage","Istakanje nije potvrđeno. Kegovi više nisu u statusu Pun ili nisu pronađeni: "+invalid.join(", "),true);await loadKegs();return}
- if(!confirm("Jeste li sigurni da želite promijeniti status za svih "+codes.length+" odabranih kegova?\n\n"+codes.join(", ")+"\n\nStatus će se promijeniti iz Pun u Istočen."))return;
  $("confirmEmptyCartBtn").disabled=true;$("clearEmptyCartBtn").disabled=true;
  try{
   for(const keg of (latest||[]).filter(k=>String(k.note||"").trim())){await acknowledgeKegFault(keg)}
  }catch(e){message("emptyCartMessage","Potvrda kvara nije dovršena: "+e.message,true);$("confirmEmptyCartBtn").disabled=false;$("clearEmptyCartBtn").disabled=false;return}
+ if(!confirm("Jeste li sigurni da želite promijeniti status za svih "+codes.length+" odabranih kegova?\n\n"+codes.join(", ")+"\n\nStatus će se promijeniti iz Pun u Istočen.")){$("confirmEmptyCartBtn").disabled=false;$("clearEmptyCartBtn").disabled=false;return}
  let done=[],failed=[];
  for(const code of codes){
   const {error}=await client.rpc("change_keg_status",{p_keg_code:code,p_new_status:"empty"});
