@@ -464,7 +464,8 @@ $("confirmShippingCartBtn").addEventListener("click",async()=>{
  if(!shippingCart.length)return;
  if(!selectedCustomer){message("shippingCartMessage","Prije potvrde otpreme odaberi kupca.",true);return}
  const codes=shippingCart.map(k=>k.code),customer=selectedCustomer;
- if(!confirm("Potvrđuješ otpremu za "+codes.length+" kegova?\\n\\nKupac: "+customer.name+"\\nOIB: "+customer.oib+"\\n\\n"+codes.join(", ")+"\\n\\nStatus će se promijeniti iz Pun u Otpremljen."))return;
+ const customerDetails="Kupac: "+customer.name+(customer.oib?"\nOIB: "+customer.oib:"");
+ if(!confirm("Potvrđuješ otpremu za "+codes.length+" kegova?\n\n"+customerDetails+"\n\n"+codes.join(", ")+"\n\nStatus će se promijeniti iz Pun u Otpremljen."))return;
  const {data:latest,error:checkError}=await client.from("kegs").select("code,status").in("code",codes);
  if(checkError){message("shippingCartMessage","Nije moguće provjeriti statuse kegova: "+checkError.message,true);return}
  const current=new Map((latest||[]).map(k=>[k.code.toLowerCase(),k.status]));
