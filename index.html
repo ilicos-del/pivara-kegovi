@@ -702,10 +702,13 @@ $("scanBtn").addEventListener("click",async()=>{
  if(!window.Html5Qrcode){message("fillMessage","QR skener se nije učitao.",true);return}
  try{
   scanner=new Html5Qrcode("scanner");
+  let lastFillScan="",lastFillScanAt=0;
   await scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{
-   await rememberCamera();
-   const code=decoded.trim();
+   const code=String(decoded||"").trim(),now=Date.now();
+   if(!code||code===lastFillScan&&now-lastFillScanAt<1800)return;
+   lastFillScan=code;lastFillScanAt=now;
    addKegToFillCart(code);
+   try{await rememberCamera()}catch(e){}
   });
  }catch(e){if(scanner){try{await scanner.stop();scanner.clear()}catch(x){}scanner=null}message("fillMessage","Ne mogu pokrenuti kameru. Provjeri dopuštenje za kameru i otvori aplikaciju preko HTTPS-a. "+e,true)}
 });
