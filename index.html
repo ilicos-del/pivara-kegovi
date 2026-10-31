@@ -304,7 +304,8 @@ $("closeDeliveryNotePreview").addEventListener("click",closeDeliveryNotePreview)
 $("deliveryNotePrintBtn").addEventListener("click",()=>{
  if(!currentDeliveryNoteHtml)return;
  openDeliveryNotePreview();
- setTimeout(()=>window.print(),100);
+ // Poziv ostaje izravno unutar korisničkog klika radi iOS Safari podrške.
+ window.print();
 });
 $("closeDeliveryNoteModal").addEventListener("click",()=>{$("deliveryNoteModal").classList.add("hidden");closeDeliveryNotePreview()});
 $("deliveryNoteModal").addEventListener("click",e=>{if(e.target===$("deliveryNoteModal")){$("deliveryNoteModal").classList.add("hidden");closeDeliveryNotePreview()}});
