@@ -166,16 +166,20 @@ function renderAllKegs(){
   return (allKegNotesSortAsc?noteCompare:-noteCompare)||a.code.localeCompare(b.code,"hr",{numeric:true});
  });
  $("sortAllKegNotesBtn").textContent="Napomena "+(allKegNotesSortAsc?"↑":"↓");
- $("allKegsRows").innerHTML=rows.map(k=>'<tr><td><button type="button" class="secondary allKegDetailBtn'+(String(k.note||"").trim()?' has-note':'')+'" data-code="'+escapeHtml(k.code)+'">'+escapeHtml(k.code)+'</button></td><td><button type="button" class="secondary openKegServiceBtn" data-code="'+escapeHtml(k.code)+'">Servis kega</button></td><td>'+escapeHtml(k.note||"—")+'<br><button type="button" class="secondary editKegNoteBtn" data-code="'+escapeHtml(k.code)+'">'+(k.note?"Uredi napomenu":"Dodaj napomenu")+'</button></td></tr>').join("")||'<tr><td colspan="3">Nema kegova.</td></tr>';
+ $("allKegsRows").innerHTML=rows.map(k=>'<tr><td><button type="button" class="secondary allKegDetailBtn'+(String(k.note||"").trim()?' has-note':'')+'" data-code="'+escapeHtml(k.code)+'">'+escapeHtml(k.code)+'</button></td><td><button type="button" class="secondary openKegServiceBtn" data-code="'+escapeHtml(k.code)+'">Servis kega</button></td><td>'+escapeHtml(k.note||"—")+'<br><button type="button" class="secondary editKegNoteBtn" data-code="'+escapeHtml(k.code)+'">'+(String(k.note||"").trim()?"Ukloni napomenu":"Dodaj napomenu")+'</button></td></tr>').join("")||'<tr><td colspan="3">Nema kegova.</td></tr>';
  $("allKegsRows").querySelectorAll(".editKegNoteBtn").forEach(btn=>btn.addEventListener("click",async()=>{
   const keg=kegs.find(x=>x.code===btn.dataset.code);if(!keg)return;
-  const value=prompt("Napomena za "+keg.code+":",keg.note||"");
-  if(value===null)return;
-  btn.disabled=true;
-  const {error}=await client.from("kegs").update({note:value.trim()||null}).eq("id",keg.id);
-  btn.disabled=false;
-  if(error){alert("Napomenu nije moguće spremiti: "+error.message);return}
-  keg.note=value.trim()||null;renderAllKegs();
+  if(!String(keg.note||"").trim()){
+   const value=prompt("Napomena za "+keg.code+":","");
+   if(value===null)return;
+   btn.disabled=true;
+   const {error}=await client.from("kegs").update({note:value.trim()||null}).eq("id",keg.id);
+   btn.disabled=false;
+   if(error){alert("Napomenu nije moguće spremiti: "+error.message);return}
+   keg.note=value.trim()||null;renderAllKegs();return;
+  }
+  await acknowledgeKegFault(keg);
+  renderAllKegs();
  }));
 }
 async function showKegHistory(code){
@@ -683,8 +687,8 @@ $("clearReturnCartBtn").addEventListener("click",()=>{returnCart=[];renderReturn
 function acknowledgeKegFault(keg){
  return new Promise(resolve=>{
   let modal=$("kegFaultModal");
-  if(!modal){modal=document.createElement("div");modal.id="kegFaultModal";modal.className="modalBackdrop";modal.innerHTML='<div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="kegFaultTitle"><h2 id="kegFaultTitle">Napomena na kegu</h2><p id="kegFaultText" style="line-height:1.6"></p><button type="button" id="kegFaultResolvedBtn" class="block">Kvar je otklonjen</button><p id="kegFaultError" role="alert" style="color:var(--red)"></p></div>';document.body.appendChild(modal)}
-  $("kegFaultText").innerHTML="<b>"+escapeHtml(keg.code)+"</b><br>"+escapeHtml(keg.note||"");
+  if(!modal){modal=document.createElement("div");modal.id="kegFaultModal";modal.className="modalBackdrop";modal.innerHTML='<div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="kegFaultTitle"><h2 id="kegFaultTitle">Potvrda otklonjenog kvara</h2><p id="kegFaultText" style="line-height:1.6"></p><button type="button" id="kegFaultResolvedBtn" class="block">Kvar je otklonjen</button><p id="kegFaultError" role="alert" style="color:var(--red)"></p></div>';document.body.appendChild(modal)}
+  $("kegFaultText").innerHTML="<b>"+escapeHtml(keg.code)+"</b><br>"+escapeHtml(keg.note||"")+"<br><br>Nakon potvrde odaberi obavljeni popravak u dijelu Servis kega.";
   $("kegFaultError").textContent="";
   modal.classList.remove("hidden");
   const btn=$("kegFaultResolvedBtn");btn.disabled=false;
@@ -693,7 +697,9 @@ function acknowledgeKegFault(keg){
    const {error}=await client.from("kegs").update({note:null}).eq("id",keg.id);
    if(error){$("kegFaultError").textContent="Napomenu nije moguće obrisati: "+error.message;btn.disabled=false;return}
    keg.note=null;const cached=kegs.find(x=>x.id===keg.id);if(cached)cached.note=null;
-   modal.classList.add("hidden");resolve(true);
+   modal.classList.add("hidden");
+   const saved=await openKegService(keg.code);
+   if(saved)resolve(true);else resolve(false);
   };
  });
 }
@@ -774,21 +780,28 @@ function renderKegServiceChoices(){
  $("confirmKegServiceBtn").disabled=!selectedServiceItems.length;
 }
 function openKegService(code){
- activeServiceKeg=kegs.find(k=>k.code===code);if(!activeServiceKeg)return;
+ activeServiceKeg=kegs.find(k=>k.code===code);if(!activeServiceKeg)return Promise.resolve(false);
  selectedServiceItems=[];$("kegServiceTitle").textContent="Servis kega · "+code;$("kegServiceMessage").textContent="";
  renderKegServiceChoices();$("kegServiceModal").classList.remove("hidden");
+ return new Promise(resolve=>{serviceModalResolve=resolve});
 }
+let serviceModalResolve=null;
 $("allKegsRows").addEventListener("click",e=>{const btn=e.target.closest(".openKegServiceBtn");if(btn)openKegService(btn.dataset.code)});
 $("kegServiceChoices").addEventListener("click",e=>{const btn=e.target.closest(".serviceChoiceBtn");if(!btn)return;const item=kegServiceOptions[Number(btn.dataset.service)];selectedServiceItems=selectedServiceItems.includes(item)?selectedServiceItems.filter(x=>x!==item):[...selectedServiceItems,item];renderKegServiceChoices()});
 $("clearKegServiceBtn").addEventListener("click",()=>{selectedServiceItems=[];renderKegServiceChoices()});
-$("closeKegService").addEventListener("click",()=>{$("kegServiceModal").classList.add("hidden");activeServiceKeg=null});
-$("kegServiceModal").addEventListener("click",e=>{if(e.target===$("kegServiceModal")){$("kegServiceModal").classList.add("hidden");activeServiceKeg=null}});
+function closeKegServiceModal(saved=false){
+ $("kegServiceModal").classList.add("hidden");activeServiceKeg=null;
+ if(serviceModalResolve){const done=serviceModalResolve;serviceModalResolve=null;done(saved)}
+}
+$("closeKegService").addEventListener("click",()=>closeKegServiceModal(false));
+$("kegServiceModal").addEventListener("click",e=>{if(e.target===$("kegServiceModal"))closeKegServiceModal(false)});
 $("confirmKegServiceBtn").addEventListener("click",async()=>{
  if(!activeServiceKeg||!selectedServiceItems.length)return;
  const btn=$("confirmKegServiceBtn");btn.disabled=true;$("kegServiceMessage").textContent="Spremam servis…";
  const {error}=await client.from("keg_service_records").insert({keg_id:activeServiceKeg.id,service_items:selectedServiceItems,serviced_by:currentUser.id});
  if(error){$("kegServiceMessage").textContent="Greška: "+error.message;btn.disabled=false;return}
- const code=activeServiceKeg.code;$("kegServiceModal").classList.add("hidden");activeServiceKeg=null;selectedServiceItems=[];
+ const code=activeServiceKeg.code;selectedServiceItems=[];
+ closeKegServiceModal(true);
  await showKegHistory(code);
 });
 $("sortAllKegNotesBtn").addEventListener("click",()=>{allKegNotesSortAsc=!allKegNotesSortAsc;renderAllKegs()});
