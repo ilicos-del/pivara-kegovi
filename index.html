@@ -155,7 +155,7 @@ async function showKegHistory(code){
   const actorIds=[...new Set([...(fillsResult.data||[]).map(x=>x.created_by),...(statusResult.data||[]).map(x=>x.changed_by),...(serviceResult.data||[]).map(x=>x.serviced_by)].filter(Boolean))];
   let actorNames={};
   if(actorIds.length){
-   const {data:profiles,error:profilesError}=await client.from("profiles").select("user_id,full_name,email").in("user_id",actorIds);
+   const {data:profiles,error:profilesError}=await client.rpc("get_profile_names",{p_user_ids:actorIds});
    if(profilesError)throw profilesError;
    actorNames=Object.fromEntries((profiles||[]).map(p=>[p.user_id,p.full_name||p.email||"Nepoznat korisnik"]));
   }
