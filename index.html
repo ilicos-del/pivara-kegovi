@@ -713,7 +713,7 @@ $("confirmEmptyCartBtn").addEventListener("click",async()=>{
  if(invalid.length){message("emptyCartMessage","Istakanje nije potvrđeno. Kegovi više nisu u statusu Pun ili nisu pronađeni: "+invalid.join(", "),true);await loadKegs();return}
  $("confirmEmptyCartBtn").disabled=true;$("clearEmptyCartBtn").disabled=true;
  try{
-  for(const keg of (latest||[]).filter(k=>String(k.note||"").trim())){await acknowledgeKegFault(keg)}
+  for(const keg of (latest||[]).filter(k=>String(k.note||"").trim())){const resolved=await acknowledgeKegFault(keg);if(!resolved)throw new Error("Servis kega nije potvrđen za "+keg.code+". Istakanje je prekinuto.")}
  }catch(e){message("emptyCartMessage","Potvrda kvara nije dovršena: "+e.message,true);$("confirmEmptyCartBtn").disabled=false;$("clearEmptyCartBtn").disabled=false;return}
  if(!confirm("Jeste li sigurni da želite promijeniti status za svih "+codes.length+" odabranih kegova?\n\n"+codes.join(", ")+"\n\nStatus će se promijeniti iz Pun u Istočen.")){$("confirmEmptyCartBtn").disabled=false;$("clearEmptyCartBtn").disabled=false;return}
  let done=[],failed=[];
