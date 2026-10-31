@@ -309,7 +309,7 @@ $("deliveryNotePrintBtn").addEventListener("click",()=>{
 });
 $("closeDeliveryNoteModal").addEventListener("click",()=>{$("deliveryNoteModal").classList.add("hidden");closeDeliveryNotePreview()});
 $("deliveryNoteModal").addEventListener("click",e=>{if(e.target===$("deliveryNoteModal")){$("deliveryNoteModal").classList.add("hidden");closeDeliveryNotePreview()}});
-$("issueDeliveryNoteBtn").addEventListener("click",issueDeliveryNote);
+
 function renderShippingCart(){
  $("shippingCartPanel").classList.toggle("hidden",shippingCart.length===0&&!lastDeliveryNote);
  $("shippingCartCount").textContent=shippingCart.length+" kegova";
