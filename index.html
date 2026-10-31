@@ -339,37 +339,36 @@ $("closeDeliveryNotePreview").addEventListener("click",closeDeliveryNotePreview)
 $("deliveryNotePrintBtn").addEventListener("click",openDeliveryNotePreview);
 function printDeliveryNote(){
  if(!currentDeliveryNoteHtml)return;
- const printWindow=window.open("","_blank");
- if(!printWindow){
-  alert("Preglednik je blokirao otvaranje prozora za ispis. Dopusti skočne prozore za ovu stranicu i pokušaj ponovno.");
-  return;
- }
- const printCss=`
-  @page{size:A4 portrait;margin:0}
-  *{box-sizing:border-box}
-  html,body{margin:0!important;padding:0!important;width:210mm;min-height:297mm;background:#fff;color:#202820}
-  body{font-family:Arial,sans-serif}
-  .deliveryNotePaper{box-sizing:border-box;width:210mm!important;max-width:none!important;min-height:297mm!important;margin:0!important;padding:14mm!important;border:0!important;box-shadow:none!important;background:#fff!important;color:#202820!important;font:13px Arial,sans-serif}
-  .deliveryNotePaper .dn-head{display:flex;justify-content:space-between;gap:20px;border-bottom:3px solid #173b2b;padding-bottom:16px}
-  .deliveryNotePaper .dn-muted{font-size:11px;color:#647067;line-height:1.5}
-  .deliveryNotePaper h1{text-align:center;font-size:25px;letter-spacing:2px;margin:26px 0}
-  .deliveryNotePaper .dn-cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:20px 0}
-  .deliveryNotePaper .dn-box{border:1px solid #dfe4dc;border-radius:8px;padding:13px;line-height:1.6;overflow-wrap:anywhere}
-  .deliveryNotePaper .dn-label{font-size:10px;font-weight:bold;letter-spacing:1px;color:#6a766e;margin-bottom:6px}
-  .deliveryNotePaper table{width:100%;border-collapse:collapse;font-size:11px;margin-top:22px}
-  .deliveryNotePaper th,.deliveryNotePaper td{border:1px solid #d8ded6;padding:8px 6px}
-  .deliveryNotePaper th{background:#edf2eb;color:#314739;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .deliveryNotePaper .dn-total{text-align:right;font-weight:bold;margin-top:14px}
-  .deliveryNotePaper .dn-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:60px}
-  .deliveryNotePaper .dn-sign div{border-top:1px solid #647067;padding-top:8px;font-size:11px}
-  .deliveryNotePaper .dn-foot{border-top:1px solid #dfe4dc;margin-top:35px;padding-top:8px;font-size:10px;color:#647067;text-align:center}
-  @media print{html,body{width:210mm!important;min-height:297mm!important}}
+ const existing=document.getElementById("deliveryNotePrintFrame");
+ if(existing)existing.remove();
+ const frame=document.createElement("iframe");
+ frame.id="deliveryNotePrintFrame";
+ frame.title="Priprema otpremnice za ispis";
+ frame.style.cssText="position:fixed;left:0;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none";
+ document.body.appendChild(frame);
+ const css=`
+ @page{size:A4 portrait;margin:0}*{box-sizing:border-box}
+ html,body{margin:0!important;padding:0!important;width:210mm;min-height:297mm;background:#fff;color:#202820;font-family:Arial,sans-serif}
+ .deliveryNotePaper{box-sizing:border-box;width:210mm!important;max-width:none!important;min-height:297mm!important;margin:0!important;padding:14mm!important;border:0!important;box-shadow:none!important;background:#fff!important;color:#202820!important;font:13px Arial,sans-serif}
+ .deliveryNotePaper .dn-head{display:flex;justify-content:space-between;gap:20px;border-bottom:3px solid #173b2b;padding-bottom:16px}
+ .deliveryNotePaper .dn-muted{font-size:11px;color:#647067;line-height:1.5}
+ .deliveryNotePaper h1{text-align:center;font-size:25px;letter-spacing:2px;margin:26px 0}
+ .deliveryNotePaper .dn-cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:20px 0}
+ .deliveryNotePaper .dn-box{border:1px solid #dfe4dc;border-radius:8px;padding:13px;line-height:1.6;overflow-wrap:anywhere}
+ .deliveryNotePaper .dn-label{font-size:10px;font-weight:bold;letter-spacing:1px;color:#6a766e;margin-bottom:6px}
+ .deliveryNotePaper table{width:100%;border-collapse:collapse;font-size:11px;margin-top:22px}
+ .deliveryNotePaper th,.deliveryNotePaper td{border:1px solid #d8ded6;padding:8px 6px}
+ .deliveryNotePaper th{background:#edf2eb;color:#314739;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .deliveryNotePaper .dn-total{text-align:right;font-weight:bold;margin-top:14px}
+ .deliveryNotePaper .dn-sign{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:60px}
+ .deliveryNotePaper .dn-sign div{border-top:1px solid #647067;padding-top:8px;font-size:11px}
+ .deliveryNotePaper .dn-foot{border-top:1px solid #dfe4dc;margin-top:35px;padding-top:8px;font-size:10px;color:#647067;text-align:center}
  `;
- printWindow.document.open();
- printWindow.document.write('<!doctype html><html lang="hr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Otpremnica</title><style>'+printCss+'</style></head><body>'+currentDeliveryNoteHtml+'</body></html>');
- printWindow.document.close();
- printWindow.focus();
- setTimeout(()=>{try{printWindow.print()}catch(e){alert("Za ispis odaberi opciju Ispis u izborniku preglednika.")}},700);
+ const doc=frame.contentDocument;
+ doc.open();doc.write('<!doctype html><html lang="hr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Otpremnica</title><style>'+css+'</style></head><body>'+currentDeliveryNoteHtml+'</body></html>');doc.close();
+ const doPrint=()=>{try{frame.contentWindow.focus();frame.contentWindow.print()}catch(e){alert("Ispis nije podržan u ovom prikazu. Otvori aplikaciju u Safariju i pokušaj ponovno.")}};
+ frame.contentWindow.addEventListener("afterprint",()=>setTimeout(()=>frame.remove(),800),{once:true});
+ setTimeout(doPrint,700);
 }
 $("deliveryNotePreviewPrintBtn").addEventListener("click",printDeliveryNote);
 $("closeDeliveryNoteModal").addEventListener("click",()=>{$("deliveryNoteModal").classList.add("hidden");closeDeliveryNotePreview()});
