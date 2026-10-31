@@ -307,8 +307,8 @@ async function issueDeliveryNote(){
 function openSavedDeliveryNote(record){
  currentDeliveryNoteRecord=record;currentDeliveryNoteHtml=record.document_html||"";
  $("deliveryNotePreviewContent").innerHTML=currentDeliveryNoteHtml;
- $("deliveryNoteActionsView").classList.remove("hidden");
- $("deliveryNotePreviewView").classList.add("hidden");
+ $("deliveryNoteActionsView").classList.add("hidden");
+ $("deliveryNotePreviewView").classList.remove("hidden");
  $("deliveryNoteModal").classList.remove("hidden");
 }
 async function openDeliveryNoteArchive(){
@@ -330,6 +330,7 @@ function openDeliveryNotePreview(){
 }
 function closeDeliveryNotePreview(){
  $("deliveryNotePreviewView").classList.add("hidden");
+ if(currentDeliveryNoteRecord){$("deliveryNoteModal").classList.add("hidden");return;}
  $("deliveryNoteActionsView").classList.remove("hidden");
 }
 $("issueDeliveryNoteBtn").addEventListener("click",issueDeliveryNote);
