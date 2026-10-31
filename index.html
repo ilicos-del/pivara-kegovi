@@ -632,7 +632,7 @@ function renderSearchScanOverlay(){
  const cart=scanOverlayPurpose==="fill"?fillCart:(mode==="washing"?washCart:mode==="shipping"?shippingCart:mode==="return"?returnCart:emptyCart);
  $("scanOverlayTitle").textContent=scanOverlayPurpose==="fill"?"Skeniranje kegova za punjenje":"Skeniranje kegova";
  $("scanOverlayCount").textContent=cart.length+" kegova";
- $("scanOverlayItems").innerHTML=cart.length?cart.map(k=>"<div class="scanOverlayItem">"+escapeHtml(k.code)+"</div>").join(""):"<span class="sub">Još nema skeniranih kegova.</span>";
+ $("scanOverlayItems").innerHTML=cart.length?cart.map(k=>'<div class="scanOverlayItem">'+escapeHtml(k.code)+'</div>').join(""):'<span class="sub">Još nema skeniranih kegova.</span>';
 }
 $("closeSearchScanBtn").addEventListener("click",stopSearchScanner);
 $("finishSearchScanBtn").addEventListener("click",stopSearchScanner);
