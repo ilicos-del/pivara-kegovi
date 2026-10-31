@@ -237,8 +237,8 @@ function closeFullKegs(){
  $("fullKegsPanel").classList.add("hidden");$("homeView").classList.remove("hidden");
 }
 function normalizeKegCodeInput(raw){
- const value=String(raw||"").trim().toLowerCase().replace(/\\s+/g,"");
- const match=value.match(/^(?:keg-?)?(\\d{1,3})$/);
+ const value=String(raw||"").trim().toLowerCase().replace(/\s+/g,"");
+ const match=value.match(/^(?:keg-?)?(\d{1,3})$/);
  if(!match)return null;
  return "Keg-"+match[1].padStart(3,"0");
 }
@@ -783,7 +783,7 @@ function renderFillCart(){
  $("fillCartRows").querySelectorAll(".removeFillCartKeg").forEach(btn=>btn.addEventListener("click",()=>{fillCart=fillCart.filter(k=>k.code!==btn.dataset.code);if(!fillCart.length)fillCartMeta=null;renderFillCart()}));
 }
 function addKegToFillCart(rawCode){
- const meta=getFillMeta(),code=String(rawCode||"").trim();
+ const meta=getFillMeta(),code=normalizeKegCodeInput(rawCode)||String(rawCode||"").trim();
  if(!meta.beer||!meta.lot||!meta.date){message("fillMessage","Prije dodavanja kegova unesi naziv piva, LOT broj i datum punjenja.",true);return}
  if(!/^Keg-[0-9]{3,}$/i.test(code)){message("fillMessage","Unesi valjanu oznaku bačve, npr. Keg-001.",true);return}
  if(fillCartMeta&&(meta.beer!==fillCartMeta.beer||meta.lot!==fillCartMeta.lot||meta.date!==fillCartMeta.date)){message("fillMessage","Jedan popis može sadržavati samo isto pivo, LOT i datum. Isprazni popis prije promjene podataka.",true);return}
