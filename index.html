@@ -372,6 +372,8 @@ async function printDeliveryNote(){
   clone.querySelectorAll(".dn-muted").forEach(x=>{x.style.fontSize="8px";x.style.lineHeight="1.2"});
   clone.querySelectorAll("h1").forEach(x=>{x.style.fontSize="15px";x.style.letterSpacing="0.5px";x.style.margin="6px 0"});
   clone.querySelectorAll(".dn-cols").forEach(x=>{x.style.display="grid";x.style.gridTemplateColumns="1fr 1fr";x.style.gap="8px";x.style.margin="6px 0"});
+  clone.querySelectorAll(".dn-head").forEach(x=>{x.style.display="grid";x.style.gridTemplateColumns="1fr 1fr";x.style.alignItems="start"});
+  clone.querySelectorAll(".dn-head>div:last-child").forEach(x=>{x.style.textAlign="right"});
   clone.querySelectorAll(".dn-box").forEach(x=>{x.style.padding="5px";x.style.fontSize="8px";x.style.lineHeight="1.2";x.style.borderRadius="3px"});
   clone.querySelectorAll(".dn-label").forEach(x=>{x.style.fontSize="7px";x.style.marginBottom="2px"});
   clone.querySelectorAll("table").forEach(x=>{x.style.width="100%";x.style.borderCollapse="collapse";x.style.tableLayout="fixed";x.style.fontSize="7px";x.style.marginTop="6px"});
