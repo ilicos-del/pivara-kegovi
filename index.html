@@ -622,26 +622,24 @@ $("clearEmptyCartBtn").addEventListener("click",()=>{emptyCart=[];renderEmptyCar
 $("search").addEventListener("input",renderKegs);
 async function stopSearchScanner(){
  if(searchScanner){try{await searchScanner.stop();searchScanner.clear()}catch(e){}searchScanner=null}
- $("searchScanOverlay").classList.add("hidden");$("searchScanBtn").textContent="📷 Skeniraj za pretragu";
+ $("searchScanOverlay").classList.add("hidden");
+ $("searchScanBtn").textContent="📷 Skeniraj za pretragu";
+ $("scanBtn").textContent="Skeniraj QR kod";
 }
+let scanOverlayPurpose="work";
 function renderSearchScanOverlay(){
  const mode=$("workMenu").value;
- const cart=mode==="washing"?washCart:mode==="shipping"?shippingCart:mode==="return"?returnCart:emptyCart;
+ const cart=scanOverlayPurpose==="fill"?fillCart:(mode==="washing"?washCart:mode==="shipping"?shippingCart:mode==="return"?returnCart:emptyCart);
+ $("scanOverlayTitle").textContent=scanOverlayPurpose==="fill"?"Skeniranje kegova za punjenje":"Skeniranje kegova";
  $("scanOverlayCount").textContent=cart.length+" kegova";
- $("scanOverlayItems").innerHTML=cart.length?cart.map(k=>"<div class=\"scanOverlayItem\">"+escapeHtml(k.code)+"</div>").join(""):"<span class=\"sub\">Još nema skeniranih kegova.</span>";
+ $("scanOverlayItems").innerHTML=cart.length?cart.map(k=>"<div class="scanOverlayItem">"+escapeHtml(k.code)+"</div>").join(""):"<span class="sub">Još nema skeniranih kegova.</span>";
 }
 $("closeSearchScanBtn").addEventListener("click",stopSearchScanner);
 $("finishSearchScanBtn").addEventListener("click",stopSearchScanner);
 $("searchScanBtn").addEventListener("click",async()=>{
- const box=$("searchScanner");
- if(searchScanner){
-  await stopSearchScanner();box.classList.add("hidden");
-  $("searchScanBtn").textContent="📷 Skeniraj za pretragu";
-  message("searchScanMessage","Skeniranje je zaustavljeno.");
-  return;
- }
+ if(searchScanner){await stopSearchScanner();message("searchScanMessage","Skeniranje je zaustavljeno.");return}
  if(!window.Html5Qrcode){message("searchScanMessage","QR skener se nije učitao.",true);return}
- box.classList.remove("hidden");
+ scanOverlayPurpose="work";
  $("searchScanOverlay").classList.remove("hidden");renderSearchScanOverlay();
  $("searchScanBtn").textContent="Zaustavi skeniranje";
  try{
@@ -654,12 +652,12 @@ $("searchScanBtn").addEventListener("click",async()=>{
    scanRejectedByStatus=false;
    if($("workMenu").value==="washing")addKegToWashCart(code);else if($("workMenu").value==="shipping")addKegToShippingCart(code);else if($("workMenu").value==="return")addKegToReturnCart(code);else addKegToEmptyCart(code);
    if(scanRejectedByStatus)flashRejectedScanFrame();
+   renderSearchScanOverlay();
    try{await rememberCamera()}catch(e){}
   });
   message("searchScanMessage","Kamera je uključena. Skeniraj QR kodove jedan za drugim.");
  }catch(e){
-  await stopSearchScanner();box.classList.add("hidden");
-  $("searchScanOverlay").classList.add("hidden");$("searchScanBtn").textContent="📷 Skeniraj za pretragu";
+  await stopSearchScanner();
   message("searchScanMessage","Ne mogu pokrenuti kameru. Dopusti pristup kameri i otvori aplikaciju preko HTTPS-a. "+e,true);
  }
 });
@@ -808,20 +806,22 @@ $("confirmFillCartBtn").addEventListener("click",async()=>{
 });
 $("clearFillCartBtn").addEventListener("click",()=>{fillCart=[];fillCartMeta=null;renderFillCart();message("fillCartMessage","Popis za punjenje je ispražnjen.")});
 $("scanBtn").addEventListener("click",async()=>{
- const box=$("scanner");box.classList.toggle("hidden");
- if(box.classList.contains("hidden")){if(scanner){try{await scanner.stop();scanner.clear()}catch(e){}scanner=null}return}
+ if(searchScanner){await stopSearchScanner();return}
  if(!window.Html5Qrcode){message("fillMessage","QR skener se nije učitao.",true);return}
+ scanOverlayPurpose="fill";
+ $("searchScanOverlay").classList.remove("hidden");renderSearchScanOverlay();
+ $("scanBtn").textContent="Zaustavi skeniranje";
  try{
-  scanner=new Html5Qrcode("scanner");
+  searchScanner=new Html5Qrcode("searchScanner");
   let lastFillScan="",lastFillScanAt=0;
-  await scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{
+  await searchScanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},async decoded=>{
    const code=String(decoded||"").trim(),now=Date.now();
    if(!code||code===lastFillScan&&now-lastFillScanAt<1800)return;
    lastFillScan=code;lastFillScanAt=now;
-   addKegToFillCart(code);
+   addKegToFillCart(code);renderSearchScanOverlay();
    try{await rememberCamera()}catch(e){}
   });
- }catch(e){if(scanner){try{await scanner.stop();scanner.clear()}catch(x){}scanner=null}message("fillMessage","Ne mogu pokrenuti kameru. Provjeri dopuštenje za kameru i otvori aplikaciju preko HTTPS-a. "+e,true)}
+ }catch(e){await stopSearchScanner();message("fillMessage","Ne mogu pokrenuti kameru. Provjeri dopuštenje za kameru i otvori aplikaciju preko HTTPS-a. "+e,true)}
 });
 clientSafeAuth();
 function clientSafeAuth(){if(configReady())init()}
