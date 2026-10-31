@@ -147,14 +147,22 @@ async function showKegHistory(code){
  $("shippedKegDetailModal").classList.remove("hidden");
  try{
   const [fillsResult,statusResult,serviceResult]=await Promise.all([
-   client.from("fills").select("beer_name,lot_number,transfer_date,created_at").eq("keg_id",keg.id),
-   client.from("status_history").select("old_status,new_status,changed_at").eq("keg_id",keg.id),
-   client.from("keg_service_records").select("service_items,serviced_at").eq("keg_id",keg.id)
+   client.from("fills").select("beer_name,lot_number,transfer_date,created_at,created_by").eq("keg_id",keg.id),
+   client.from("status_history").select("old_status,new_status,changed_at,changed_by").eq("keg_id",keg.id),
+   client.from("keg_service_records").select("service_items,serviced_at,serviced_by").eq("keg_id",keg.id)
   ]);
   if(fillsResult.error)throw fillsResult.error;if(statusResult.error)throw statusResult.error;if(serviceResult.error)throw serviceResult.error;
+  const actorIds=[...new Set([...(fillsResult.data||[]).map(x=>x.created_by),...(statusResult.data||[]).map(x=>x.changed_by),...(serviceResult.data||[]).map(x=>x.serviced_by)].filter(Boolean))];
+  let actorNames={};
+  if(actorIds.length){
+   const {data:profiles,error:profilesError}=await client.from("profiles").select("user_id,full_name,email").in("user_id",actorIds);
+   if(profilesError)throw profilesError;
+   actorNames=Object.fromEntries((profiles||[]).map(p=>[p.user_id,p.full_name||p.email||"Nepoznat korisnik"]));
+  }
+  const actorLabel=id=>id?(actorNames[id]||"Korisnik"): "—";
   const events=[];
-  (fillsResult.data||[]).forEach(x=>events.push({at:x.created_at||x.transfer_date,type:"Punjenje",detail:"Pivo: "+(x.beer_name||"—")+" · LOT: "+(x.lot_number||"—")+" · Datum punjenja: "+formatLocalDate(x.transfer_date)}));
-  (serviceResult.data||[]).forEach(x=>events.push({at:x.serviced_at,type:"SERVIS",detail:(x.service_items||[]).join(", ")}));
+  (fillsResult.data||[]).forEach(x=>events.push({at:x.created_at||x.transfer_date,type:"Punjenje",detail:"Pivo: "+(x.beer_name||"—")+" · LOT: "+(x.lot_number||"—")+" · Datum punjenja: "+formatLocalDate(x.transfer_date),actor:actorLabel(x.created_by)}));
+  (serviceResult.data||[]).forEach(x=>events.push({at:x.serviced_at,type:"SERVIS",detail:(x.service_items||[]).join(", "),actor:actorLabel(x.serviced_by)}));
   (statusResult.data||[]).forEach(x=>{
    const from=statusNames[x.old_status]||x.old_status||"—",to=statusNames[x.new_status]||x.new_status||"—";
    let type="Promjena statusa";
@@ -163,10 +171,10 @@ async function showKegHistory(code){
    else if(x.new_status==="shipped")type="Otprema kupcu";
    else if(x.old_status==="shipped"&&x.new_status==="empty")type="Povrat od kupca";
    else if(x.new_status==="full")return;
-   events.push({at:x.changed_at,type,detail:from+" → "+to});
+   events.push({at:x.changed_at,type,detail:from+" → "+to,actor:actorLabel(x.changed_by)});
   });
   events.sort((a,b)=>new Date(b.at||0)-new Date(a.at||0));
-  $("kegHistoryRows").innerHTML=events.map(x=>'<tr><td>'+escapeHtml(x.at?new Date(x.at).toLocaleString("hr-HR"):"—")+'</td><td><b>'+escapeHtml(x.type)+'</b></td><td>'+escapeHtml(x.detail)+'</td></tr>').join("")||'<tr><td colspan="3">Za ovaj keg još nema evidentiranih događaja.</td></tr>';
+  $("kegHistoryRows").innerHTML=events.map(x=>'<tr><td>'+escapeHtml(x.at?new Date(x.at).toLocaleString("hr-HR"):"—")+'</td><td><b>'+escapeHtml(x.type)+'</b></td><td>'+escapeHtml(x.detail)+'</td><td>'+escapeHtml(x.actor||"—")+'</td></tr>').join("")||'<tr><td colspan="4">Za ovaj keg još nema evidentiranih događaja.</td></tr>';
   $("kegHistoryMessage").textContent="Ukupno evidentiranih događaja: "+events.length;
  }catch(e){$("kegHistoryRows").innerHTML='<tr><td colspan="3">Povijest nije moguće učitati.</td></tr>';$("kegHistoryMessage").textContent="Greška pri učitavanju povijesti: "+e.message}
 }
