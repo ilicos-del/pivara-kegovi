@@ -305,6 +305,7 @@ function addKegToEmptyCart(rawCode){
  const keg=kegs.find(k=>k.code.toLowerCase()===code.toLowerCase());
  if(!keg){message("searchScanMessage","Bačva "+code+" nije pronađena u evidenciji.",true);return}
  if(keg.status!=="full"){scanRejectedByStatus=true;message("searchScanMessage","Bačva "+keg.code+" nije u statusu Pun. Trenutačni status: "+(statusNames[keg.status]||keg.status)+".",true);return}
+ if(String(keg.note||"").trim()){scanRejectedByStatus=true;message("searchScanMessage","Keg "+keg.code+" ima upisanu napomenu: "+keg.note+". Prije istakanja potrebno je otkloniti kvar.",true);return}
  if(emptyCart.some(k=>k.id===keg.id)){message("searchScanMessage",keg.code+" je već na popisu.");$("search").value="";return}
  emptyCart.push(keg);renderEmptyCart();$("search").value="";renderSearchScanOverlay();
  message("searchScanMessage",keg.code+" dodan na popis. Možeš dodati sljedeći keg.");
@@ -558,6 +559,7 @@ function addKegToShippingCart(rawCode){
  const keg=kegs.find(k=>k.code.toLowerCase()===code.toLowerCase());
  if(!keg){message("searchScanMessage","Bačva "+code+" nije pronađena u evidenciji.",true);return}
  if(keg.status!=="full"){scanRejectedByStatus=true;message("searchScanMessage","Otprema je dopuštena samo za kegove u statusu Pun. Trenutačni status: "+(statusNames[keg.status]||keg.status)+".",true);return}
+ if(String(keg.note||"").trim()){scanRejectedByStatus=true;message("searchScanMessage","Otprema nije dopuštena. "+keg.code+" ima upisanu napomenu: "+keg.note+".",true);return}
  if(shippingCart.some(k=>k.id===keg.id)){message("searchScanMessage",keg.code+" je već na popisu.");$("search").value="";return}
  shippingCart.push(keg);renderShippingCart();$("search").value="";renderSearchScanOverlay();
  message("searchScanMessage",keg.code+" dodan na popis za otpremu.");
@@ -632,10 +634,12 @@ $("confirmShippingCartBtn").addEventListener("click",async()=>{
  const codes=shippingCart.map(k=>k.code),customer=selectedCustomer;
  const customerDetails="Kupac: "+customer.name+(customer.oib?"\nOIB: "+customer.oib:"");
  if(!confirm("Potvrđuješ otpremu za "+codes.length+" kegova?\n\n"+customerDetails+"\n\n"+codes.join(", ")+"\n\nStatus će se promijeniti iz Pun u Otpremljen."))return;
- const {data:latest,error:checkError}=await client.from("kegs").select("code,status").in("code",codes);
- if(checkError){message("shippingCartMessage","Nije moguće provjeriti statuse kegova: "+checkError.message,true);return}
- const current=new Map((latest||[]).map(k=>[k.code.toLowerCase(),k.status]));
- const invalid=codes.filter(code=>current.get(code.toLowerCase())!=="full");
+ const {data:latest,error:checkError}=await client.from("kegs").select("code,status,note").in("code",codes);
+ if(checkError){message("shippingCartMessage","Nije moguće provjeriti statuse i napomene kegova: "+checkError.message,true);return}
+ const current=new Map((latest||[]).map(k=>[k.code.toLowerCase(),k]));
+ const blocked=(latest||[]).filter(k=>String(k.note||"").trim());
+ if(blocked.length){message("shippingCartMessage","Otprema nije dopuštena. Napomenu imaju: "+blocked.map(k=>k.code+" ("+k.note+")").join(", ")+". Ukloni te kegove s popisa ili prvo otkloni kvar i izbriši napomenu u evidenciji svih kegova.",true);await loadKegs();return}
+ const invalid=codes.filter(code=>current.get(code.toLowerCase())?.status!=="full");
  if(invalid.length){message("shippingCartMessage","Otprema nije potvrđena. Ovi kegovi više nisu u statusu Pun ili nisu pronađeni: "+invalid.join(", "),true);await loadKegs();return}
  $("confirmShippingCartBtn").disabled=true;$("clearShippingCartBtn").disabled=true;$("chooseCustomerBtn").disabled=true;
  let done=[],failed=[];
@@ -670,11 +674,36 @@ $("confirmReturnCartBtn").addEventListener("click",async()=>{
 });
 $("clearReturnCartBtn").addEventListener("click",()=>{returnCart=[];renderReturnCart();message("returnCartMessage","Popis za povrat je ispražnjen.")});
 
+function acknowledgeKegFault(keg){
+ return new Promise(resolve=>{
+  let modal=$("kegFaultModal");
+  if(!modal){modal=document.createElement("div");modal.id="kegFaultModal";modal.className="modalBackdrop";modal.innerHTML='<div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="kegFaultTitle"><h2 id="kegFaultTitle">Napomena na kegu</h2><p id="kegFaultText" style="line-height:1.6"></p><button type="button" id="kegFaultResolvedBtn" class="block">Kvar je otklonjen</button><p id="kegFaultError" role="alert" style="color:var(--red)"></p></div>';document.body.appendChild(modal)}
+  $("kegFaultText").innerHTML="<b>"+escapeHtml(keg.code)+"</b><br>"+escapeHtml(keg.note||"");
+  $("kegFaultError").textContent="";
+  modal.classList.remove("hidden");
+  const btn=$("kegFaultResolvedBtn");btn.disabled=false;
+  btn.onclick=async()=>{
+   btn.disabled=true;
+   const {error}=await client.from("kegs").update({note:null}).eq("id",keg.id);
+   if(error){$("kegFaultError").textContent="Napomenu nije moguće obrisati: "+error.message;btn.disabled=false;return}
+   keg.note=null;const cached=kegs.find(x=>x.id===keg.id);if(cached)cached.note=null;
+   modal.classList.add("hidden");resolve(true);
+  };
+ });
+}
 $("confirmEmptyCartBtn").addEventListener("click",async()=>{
  if(!emptyCart.length)return;
  const codes=emptyCart.map(k=>k.code);
+ const {data:latest,error:checkError}=await client.from("kegs").select("id,code,status,note").in("code",codes);
+ if(checkError){message("emptyCartMessage","Nije moguće provjeriti napomene kegova: "+checkError.message,true);return}
+ const latestByCode=new Map((latest||[]).map(k=>[k.code.toLowerCase(),k]));
+ const invalid=codes.filter(code=>latestByCode.get(code.toLowerCase())?.status!=="full");
+ if(invalid.length){message("emptyCartMessage","Istakanje nije potvrđeno. Kegovi više nisu u statusu Pun ili nisu pronađeni: "+invalid.join(", "),true);await loadKegs();return}
  if(!confirm("Jeste li sigurni da želite promijeniti status za svih "+codes.length+" odabranih kegova?\n\n"+codes.join(", ")+"\n\nStatus će se promijeniti iz Pun u Istočen."))return;
  $("confirmEmptyCartBtn").disabled=true;$("clearEmptyCartBtn").disabled=true;
+ try{
+  for(const keg of (latest||[]).filter(k=>String(k.note||"").trim())){await acknowledgeKegFault(keg)}
+ }catch(e){message("emptyCartMessage","Potvrda kvara nije dovršena: "+e.message,true);$("confirmEmptyCartBtn").disabled=false;$("clearEmptyCartBtn").disabled=false;return}
  let done=[],failed=[];
  for(const code of codes){
   const {error}=await client.rpc("change_keg_status",{p_keg_code:code,p_new_status:"empty"});
@@ -684,7 +713,7 @@ $("confirmEmptyCartBtn").addEventListener("click",async()=>{
  emptyCart=emptyCart.filter(k=>!done.includes(k.code));renderEmptyCart();
  $("confirmEmptyCartBtn").disabled=false;$("clearEmptyCartBtn").disabled=false;
  if(failed.length)message("emptyCartMessage","Uspješno evidentirano: "+done.length+". Nije uspjelo: "+failed.join("; "),true);
- else message("emptyCartMessage","Uspješno je evidentirano istakanje za svih "+done.length+" kegova.");
+ else message("emptyCartMessage","Kvar je potvrđen kao otklonjen i istakanje je evidentirano za svih "+done.length+" kegova.");
 });
 $("clearEmptyCartBtn").addEventListener("click",()=>{emptyCart=[];renderEmptyCart();message("emptyCartMessage","Popis je ispražnjen.")});
 $("search").addEventListener("input",renderKegs);
