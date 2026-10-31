@@ -278,7 +278,7 @@ function issueDeliveryNote(){
 }
 $("issueDeliveryNoteBtn").addEventListener("click",issueDeliveryNote);
 function renderShippingCart(){
- $("shippingCartPanel").classList.toggle("hidden",shippingCart.length===0);
+ $("shippingCartPanel").classList.toggle("hidden",shippingCart.length===0&&!lastDeliveryNote);
  $("shippingCartCount").textContent=shippingCart.length+" kegova";
  $("shippingCartRows").innerHTML=shippingCart.map(k=>'<tr><td><b>'+escapeHtml(k.code)+'</b></td><td><span class="pill full">Pun</span></td><td><button type="button" class="danger removeShippingCartKeg" data-code="'+escapeHtml(k.code)+'">Ukloni</button></td></tr>').join("");
  $("shippingCartRows").querySelectorAll(".removeShippingCartKeg").forEach(btn=>btn.addEventListener("click",()=>{shippingCart=shippingCart.filter(k=>k.code!==btn.dataset.code);renderShippingCart()}));
@@ -326,6 +326,7 @@ $("addCustomerBtn").addEventListener("click",async()=>{
  $("newCustomerType").value="company";updateCustomerForm();
  });
 function addKegToShippingCart(rawCode){
+ if(!lastDeliveryNote){$("deliveryNoteActions").classList.add("hidden")}
  const code=String(rawCode||"").trim();
  if(!/^Keg-[0-9]{3,}$/i.test(code)){message("searchScanMessage","Unesi valjanu oznaku bačve, npr. Keg-001.",true);return}
  const keg=kegs.find(k=>k.code.toLowerCase()===code.toLowerCase());
