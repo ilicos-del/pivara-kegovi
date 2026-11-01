@@ -694,12 +694,25 @@ function acknowledgeKegFault(keg){
   const btn=$("kegFaultResolvedBtn");btn.disabled=false;
   btn.onclick=async()=>{
    btn.disabled=true;
-   const {error}=await client.from("kegs").update({note:null}).eq("id",keg.id);
-   if(error){$("kegFaultError").textContent="Napomenu nije moguće obrisati: "+error.message;btn.disabled=false;return}
-   keg.note=null;const cached=kegs.find(x=>x.id===keg.id);if(cached)cached.note=null;
    modal.classList.add("hidden");
    const saved=await openKegService(keg.code);
-   if(saved)resolve(true);else resolve(false);
+   if(!saved){
+    modal.classList.remove("hidden");
+    $("kegFaultError").textContent="Servis nije spremljen. Napomena je zadržana, a kvar ostaje evidentiran.";
+    btn.disabled=false;
+    resolve(false);
+    return;
+   }
+   const {error}=await client.from("kegs").update({note:null}).eq("id",keg.id);
+   if(error){
+    modal.classList.remove("hidden");
+    $("kegFaultError").textContent="Servis je spremljen, ali napomenu nije moguće ukloniti: "+error.message+". Napomena je zadržana.";
+    btn.disabled=false;
+    resolve(false);
+    return;
+   }
+   keg.note=null;const cached=kegs.find(x=>x.id===keg.id);if(cached)cached.note=null;
+   resolve(true);
   };
  });
 }
