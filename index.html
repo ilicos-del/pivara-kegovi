@@ -101,7 +101,7 @@ async function showApp(user){
  if(error){message("loginMessage","Prijava je uspjela, ali profil nije dostupan: "+error.message,true);return}
  profile=p;
  ["fullKegsStat","emptyKegsStat","washedKegsStat","shippedKegsStat"].forEach(id=>$(id).classList.toggle("hidden",profile.role!=="admin"));
- $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("logoutBtn").classList.remove("hidden");$("addUserBtn").classList.toggle("hidden",profile.role!=="admin");
+ $("loginPanel").remove();$("appPanel").classList.remove("hidden");$("logoutBtn").classList.remove("hidden");$("addUserBtn").classList.toggle("hidden",profile.role!=="admin");
  await loadKegs();
 }
 async function loadKegs(){
